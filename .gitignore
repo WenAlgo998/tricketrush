@@ -1,0 +1,17 @@
+# Java build output
+backend/target/
+
+# Java IDE metadata
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Node.js build output
+frontend/node_modules/
+frontend/dist/
+
+# Local configuration and operating-system files
+.env
+.DS_Store
