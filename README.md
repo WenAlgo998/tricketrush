@@ -27,7 +27,7 @@ See `docs/architecture.md` for exit criteria per stage.
 
 ## Planned Local Setup
 
-The application services and local infrastructure files will be added during implementation. The intended prerequisites are Java 21, Node.js 22+, and Docker Desktop.
+The application services and local infrastructure files will be added during implementation. The intended prerequisites are Java 21, Apache Maven 3.9+, Node.js 22+, and Docker Desktop.
 
 Once those files exist, the local workflow will be:
 
@@ -40,7 +40,7 @@ Start the API in one terminal:
 
 ```bash
 cd backend
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
 Start the web app in another:
