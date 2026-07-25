@@ -53,6 +53,8 @@ cd backend
 mvn spring-boot:run
 ```
 
+Flyway applies all committed database migrations automatically at application startup. Do not modify a migration after it has been applied; create a new versioned migration instead.
+
 Start the web app in another:
 
 ```bash
