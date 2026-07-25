@@ -1,6 +1,18 @@
 spring:
   application:
     name: ticketrush-api
+  config:
+    import: optional:file:../.env[.properties]
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:ticketrush}
+    username: ${POSTGRES_USER:ticketrush_app}
+    password: ${POSTGRES_PASSWORD:ticketrush_local_only}
+    hikari:
+      pool-name: ticketrush-pool
+      maximum-pool-size: 10
+      minimum-idle: 2
+  flyway:
+    locations: classpath:db/migration
 
 server:
   shutdown: graceful
