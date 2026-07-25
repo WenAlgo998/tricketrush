@@ -33,8 +33,18 @@ Once those files exist, the local workflow will be:
 
 ```bash
 cp .env.example .env
-docker compose up -d
+docker compose up -d postgres
 ```
+
+Verify that PostgreSQL is ready before starting the API:
+
+```bash
+docker compose ps
+```
+
+The API reads the same root `.env` file when started from `backend/`, so its database connection settings stay aligned with Docker Compose.
+
+> **Resetting local data:** PostgreSQL applies `POSTGRES_*` values only when its data volume is first created. If you intentionally change these values, reset the local database with `docker compose down -v` before starting it again. This permanently deletes local database data.
 
 Start the API in one terminal:
 
