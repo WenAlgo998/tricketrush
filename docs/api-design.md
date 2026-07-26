@@ -12,7 +12,9 @@
 - `GET /api/events/{eventId}` — event detail.
   - `200` → `{ id, name, venueName, saleStartAt, eventStartAt, status }`
   - `404` → `{ error: "Event not found", code: "EVENT_NOT_FOUND" }`
-- `GET /api/events/{eventId}/seats` — seat map with current status. Each seat includes `id`, `section`, `row`, `seatNumber`, `priceCents`, `currency`, `status`, and `version`.
+- `GET /api/events/{eventId}/seats` — static seat map with current status, ordered by section, row, and seat number.
+  - `200` → `[{ id, section, row, seatNumber, priceCents, currency, status, version }]`
+  - `404` → `{ error: "Event not found", code: "EVENT_NOT_FOUND" }`
 
 ## Reservations (Stage 1)
 - `POST /api/events/{eventId}/seats/{seatId}/reserve` — immediately confirms one available seat for the authenticated user.
