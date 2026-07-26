@@ -6,8 +6,12 @@
 - Authenticated requests use `Authorization: Bearer <JWT>`. Missing or invalid credentials return `401`; authenticated users attempting to access another buyer's resource return `403`.
 
 ## Events & Seats
-- `GET /api/events` — paginated event list
-- `GET /api/events/{eventId}` — event detail
+- `GET /api/events` — paginated event list.
+  - Query parameters: `page` (zero-based, default `0`, maximum `10000`) and `size` (default `20`, maximum `100`).
+  - `200` → `{ content: [...], page, size, totalElements, totalPages }`
+- `GET /api/events/{eventId}` — event detail.
+  - `200` → `{ id, name, venueName, saleStartAt, eventStartAt, status }`
+  - `404` → `{ error: "Event not found", code: "EVENT_NOT_FOUND" }`
 - `GET /api/events/{eventId}/seats` — seat map with current status. Each seat includes `id`, `section`, `row`, `seatNumber`, `priceCents`, `currency`, `status`, and `version`.
 
 ## Reservations (Stage 1)
