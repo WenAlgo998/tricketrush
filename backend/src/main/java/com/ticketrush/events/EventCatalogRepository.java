@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public class EventCatalogRepository {
+class EventCatalogRepository {
 
     private static final RowMapper<EventCatalogItem> EVENT_ROW_MAPPER = (resultSet, rowNumber) -> new EventCatalogItem(
             resultSet.getObject("id", UUID.class),

@@ -64,6 +64,13 @@ class EventCatalogIntegrationTest {
     }
 
     @Test
+    void healthEndpointIsAvailable() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+    }
+
+    @Test
     void listsEventsWithDeterministicPagination() throws Exception {
         mockMvc.perform(get("/api/events").param("page", "0").param("size", "1"))
                 .andExpect(status().isOk())

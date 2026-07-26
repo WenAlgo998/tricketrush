@@ -4,6 +4,8 @@ import com.ticketrush.common.api.PageResponse;
 import com.ticketrush.events.EventCatalogItem;
 import com.ticketrush.events.EventCatalogPage;
 import com.ticketrush.events.EventCatalogService;
+import com.ticketrush.events.SeatMapItem;
+import com.ticketrush.events.SeatMapService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.validation.annotation.Validated;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/events")
@@ -21,9 +24,11 @@ import java.util.UUID;
 public class EventController {
 
     private final EventCatalogService eventCatalogService;
+    private final SeatMapService seatMapService;
 
-    public EventController(EventCatalogService eventCatalogService) {
+    public EventController(EventCatalogService eventCatalogService, SeatMapService seatMapService) {
         this.eventCatalogService = eventCatalogService;
+        this.seatMapService = seatMapService;
     }
 
     @GetMapping
@@ -46,6 +51,11 @@ public class EventController {
         return EventResponse.from(eventCatalogService.findById(eventId));
     }
 
+    @GetMapping("/{eventId}/seats")
+    public List<SeatResponse> getSeatMap(@PathVariable UUID eventId) {
+        return seatMapService.findByEventId(eventId).stream().map(SeatResponse::from).toList();
+    }
+
     public record EventResponse(
             UUID id,
             String name,
@@ -62,6 +72,30 @@ public class EventController {
                     event.saleStartAt(),
                     event.eventStartAt(),
                     event.status().name()
+            );
+        }
+    }
+
+    public record SeatResponse(
+            UUID id,
+            String section,
+            String row,
+            String seatNumber,
+            int priceCents,
+            String currency,
+            String status,
+            int version
+    ) {
+        private static SeatResponse from(SeatMapItem seat) {
+            return new SeatResponse(
+                    seat.id(),
+                    seat.section(),
+                    seat.row(),
+                    seat.seatNumber(),
+                    seat.priceCents(),
+                    seat.currency(),
+                    seat.status().name(),
+                    seat.version()
             );
         }
     }
