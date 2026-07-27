@@ -2,8 +2,15 @@
 
 ## Auth
 - `POST /api/auth/register`
-- `POST /api/auth/login` → returns JWT
+  - body: `{ email, password }`; email is normalized to lowercase and passwords must be 8–72 characters.
+  - `201` → `{ userId, email, accessToken, tokenType: "Bearer", expiresIn }`
+  - `409` → `{ error: "Email is already registered", code: "EMAIL_ALREADY_REGISTERED" }`
+- `POST /api/auth/login`
+  - body: `{ email, password }`
+  - `200` → `{ userId, email, accessToken, tokenType: "Bearer", expiresIn }`
+  - `401` → `{ error: "Invalid email or password", code: "INVALID_CREDENTIALS" }`
 - Authenticated requests use `Authorization: Bearer <JWT>`. Missing or invalid credentials return `401`; authenticated users attempting to access another buyer's resource return `403`.
+- Access tokens are HS256-signed, include the buyer UUID as `sub`, and expire after 15 minutes by default. Set a deployment-specific `JWT_SECRET` of at least 32 characters; the checked-in fallback is for local development only.
 
 ## Events & Seats
 - `GET /api/events` — paginated event list.
