@@ -27,3 +27,11 @@ management:
       probes:
         enabled: true
       show-details: never
+
+app:
+  auth:
+    jwt:
+      issuer: ticketrush-api
+      # Local-only fallback. Set JWT_SECRET to a random value of at least 32 characters outside development.
+      secret: ${JWT_SECRET:local-development-secret-change-before-deployment-2026}
+      access-token-ttl: PT15M
