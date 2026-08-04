@@ -3,6 +3,8 @@ package com.ticketrush.common.api;
 import com.ticketrush.auth.EmailAlreadyRegisteredException;
 import com.ticketrush.auth.InvalidCredentialsException;
 import com.ticketrush.events.EventNotFoundException;
+import com.ticketrush.events.EventNotOnSaleException;
+import com.ticketrush.events.SeatUnavailableException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,6 +31,18 @@ class ApiExceptionHandler {
     ResponseEntity<ApiError> handleInvalidCredentials() {
         return ResponseEntity.status(401)
                 .body(new ApiError("Invalid email or password", "INVALID_CREDENTIALS"));
+    }
+
+    @ExceptionHandler(EventNotOnSaleException.class)
+    ResponseEntity<ApiError> handleEventNotOnSale() {
+        return ResponseEntity.status(409)
+                .body(new ApiError("Event is not on sale", "EVENT_NOT_ON_SALE"));
+    }
+
+    @ExceptionHandler(SeatUnavailableException.class)
+    ResponseEntity<ApiError> handleSeatUnavailable() {
+        return ResponseEntity.status(409)
+                .body(new ApiError("Seat is no longer available", "SEAT_UNAVAILABLE"));
     }
 
     @ExceptionHandler({
