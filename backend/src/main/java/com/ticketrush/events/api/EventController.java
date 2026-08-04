@@ -6,13 +6,19 @@ import com.ticketrush.events.EventCatalogPage;
 import com.ticketrush.events.EventCatalogService;
 import com.ticketrush.events.SeatMapItem;
 import com.ticketrush.events.SeatMapService;
+import com.ticketrush.events.ReservationService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -25,10 +31,16 @@ public class EventController {
 
     private final EventCatalogService eventCatalogService;
     private final SeatMapService seatMapService;
+    private final ReservationService reservationService;
 
-    public EventController(EventCatalogService eventCatalogService, SeatMapService seatMapService) {
+    public EventController(
+            EventCatalogService eventCatalogService,
+            SeatMapService seatMapService,
+            ReservationService reservationService
+    ) {
         this.eventCatalogService = eventCatalogService;
         this.seatMapService = seatMapService;
+        this.reservationService = reservationService;
     }
 
     @GetMapping
@@ -54,6 +66,19 @@ public class EventController {
     @GetMapping("/{eventId}/seats")
     public List<SeatResponse> getSeatMap(@PathVariable UUID eventId) {
         return seatMapService.findByEventId(eventId).stream().map(SeatResponse::from).toList();
+    }
+
+    @PostMapping("/{eventId}/seats/{seatId}/reserve")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReservationResponse reserveSeat(
+            @PathVariable UUID eventId,
+            @PathVariable UUID seatId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        ReservationService.ConfirmedReservation reservation = reservationService.reserve(
+                eventId, seatId, UUID.fromString(jwt.getSubject())
+        );
+        return new ReservationResponse(reservation.orderId(), "CONFIRMED");
     }
 
     public record EventResponse(
@@ -98,5 +123,8 @@ public class EventController {
                     seat.version()
             );
         }
+    }
+
+    public record ReservationResponse(UUID orderId, String status) {
     }
 }

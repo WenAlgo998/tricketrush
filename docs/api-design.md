@@ -27,7 +27,8 @@
 - `POST /api/events/{eventId}/seats/{seatId}/reserve` — immediately confirms one available seat for the authenticated user.
   - The server performs an atomic conditional update; it must never use a read-then-write reservation.
   - `201` → `{ orderId, status: "CONFIRMED" }`
-  - `409` → seat is no longer available.
+  - `409 SEAT_UNAVAILABLE` → seat is no longer available.
+  - `409 EVENT_NOT_ON_SALE` → the event has not started sales or is closed.
 
 ## Holds (Stage 2+)
 - `POST /api/events/{eventId}/seats/{seatId}/hold`
