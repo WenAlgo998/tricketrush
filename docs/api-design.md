@@ -34,7 +34,7 @@
 - `POST /api/events/{eventId}/seats/{seatId}/hold`
   - body: `{ expectedVersion }`; identity comes from the JWT, never a client-supplied `userId`.
   - `201` → `{ holdId, expiresAt }`
-  - 409 → seat already held/sold (version mismatch)
+  - `409 SEAT_HOLD_CONFLICT` → seat is already held/sold or its version no longer matches.
 - `DELETE /api/holds/{holdId}` — releases the authenticated buyer's hold early; an already inactive hold returns `204` without changing state.
 
 ## Checkout (Stage 4)

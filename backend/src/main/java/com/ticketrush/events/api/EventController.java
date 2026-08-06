@@ -7,8 +7,11 @@ import com.ticketrush.events.EventCatalogService;
 import com.ticketrush.events.SeatMapItem;
 import com.ticketrush.events.SeatMapService;
 import com.ticketrush.events.ReservationService;
+import com.ticketrush.events.HoldService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -32,15 +36,18 @@ public class EventController {
     private final EventCatalogService eventCatalogService;
     private final SeatMapService seatMapService;
     private final ReservationService reservationService;
+    private final HoldService holdService;
 
     public EventController(
             EventCatalogService eventCatalogService,
             SeatMapService seatMapService,
-            ReservationService reservationService
+            ReservationService reservationService,
+            HoldService holdService
     ) {
         this.eventCatalogService = eventCatalogService;
         this.seatMapService = seatMapService;
         this.reservationService = reservationService;
+        this.holdService = holdService;
     }
 
     @GetMapping
@@ -79,6 +86,20 @@ public class EventController {
                 eventId, seatId, UUID.fromString(jwt.getSubject())
         );
         return new ReservationResponse(reservation.orderId(), "CONFIRMED");
+    }
+
+    @PostMapping("/{eventId}/seats/{seatId}/hold")
+    @ResponseStatus(HttpStatus.CREATED)
+    public HoldResponse holdSeat(
+            @PathVariable UUID eventId,
+            @PathVariable UUID seatId,
+            @Valid @RequestBody HoldRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        HoldService.CreatedHold hold = holdService.create(
+                eventId, seatId, UUID.fromString(jwt.getSubject()), request.expectedVersion()
+        );
+        return new HoldResponse(hold.holdId(), hold.expiresAt());
     }
 
     public record EventResponse(
@@ -126,5 +147,11 @@ public class EventController {
     }
 
     public record ReservationResponse(UUID orderId, String status) {
+    }
+
+    public record HoldRequest(@NotNull @Min(0) Integer expectedVersion) {
+    }
+
+    public record HoldResponse(UUID holdId, java.time.OffsetDateTime expiresAt) {
     }
 }
