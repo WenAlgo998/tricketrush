@@ -35,3 +35,5 @@ app:
       # Local-only fallback. Set JWT_SECRET to a random value of at least 32 characters outside development.
       secret: ${JWT_SECRET:local-development-secret-change-before-deployment-2026}
       access-token-ttl: PT15M
+  holds:
+    duration: PT5M
