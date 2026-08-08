@@ -48,6 +48,20 @@ public class HoldService {
         return new CreatedHold(holdId, expiresAt);
     }
 
+    @Transactional
+    public void release(UUID holdId, UUID userId) {
+        HoldRepository.ActiveHold hold = holdRepository.findActiveUnexpiredById(holdId).orElse(null);
+        if (hold == null) {
+            return;
+        }
+        if (!hold.userId().equals(userId)) {
+            throw new HoldNotOwnedException();
+        }
+        if (holdRepository.releaseIfActiveAndOwned(holdId, userId)) {
+            holdRepository.releaseSeatForInactiveHold(holdId, "RELEASED");
+        }
+    }
+
     public record CreatedHold(UUID holdId, OffsetDateTime expiresAt) {
     }
 }

@@ -6,6 +6,7 @@ import com.ticketrush.events.EventNotFoundException;
 import com.ticketrush.events.EventNotOnSaleException;
 import com.ticketrush.events.SeatUnavailableException;
 import com.ticketrush.events.SeatHoldConflictException;
+import com.ticketrush.events.HoldNotOwnedException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -50,6 +51,12 @@ class ApiExceptionHandler {
     ResponseEntity<ApiError> handleSeatHoldConflict() {
         return ResponseEntity.status(409)
                 .body(new ApiError("Seat is no longer available", "SEAT_HOLD_CONFLICT"));
+    }
+
+    @ExceptionHandler(HoldNotOwnedException.class)
+    ResponseEntity<ApiError> handleHoldNotOwned() {
+        return ResponseEntity.status(403)
+                .body(new ApiError("Hold is not owned by the authenticated buyer", "HOLD_NOT_OWNED"));
     }
 
     @ExceptionHandler({

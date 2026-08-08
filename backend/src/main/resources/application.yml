@@ -37,3 +37,7 @@ app:
       access-token-ttl: PT15M
   holds:
     duration: PT5M
+    expiry:
+      sweep-interval: PT30S
+      initial-delay: PT30S
+      batch-size: 100

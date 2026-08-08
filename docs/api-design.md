@@ -35,7 +35,10 @@
   - body: `{ expectedVersion }`; identity comes from the JWT, never a client-supplied `userId`.
   - `201` → `{ holdId, expiresAt }`
   - `409 SEAT_HOLD_CONFLICT` → seat is already held/sold or its version no longer matches.
-- `DELETE /api/holds/{holdId}` — releases the authenticated buyer's hold early; an already inactive hold returns `204` without changing state.
+- `DELETE /api/holds/{holdId}` — releases the authenticated buyer's unexpired hold early.
+  - `204` → released successfully or hold is already inactive.
+  - `403 HOLD_NOT_OWNED` → the active hold belongs to another buyer.
+  - Expired holds are released by the durable expiry sweep; the sweep transitions the hold to `EXPIRED` before releasing its seat.
 
 ## Checkout (Stage 4)
 - `POST /api/orders`
