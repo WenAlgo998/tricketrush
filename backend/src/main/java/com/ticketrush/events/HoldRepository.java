@@ -5,6 +5,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -43,5 +45,71 @@ class HoldRepository {
         } catch (DuplicateKeyException exception) {
             throw new SeatHoldConflictException();
         }
+    }
+
+    Optional<ActiveHold> findActiveUnexpiredById(UUID holdId) {
+        return jdbcTemplate.query("""
+                        SELECT id, seat_id, user_id
+                        FROM holds
+                        WHERE id = ?
+                          AND status = 'ACTIVE'
+                          AND expires_at > CURRENT_TIMESTAMP
+                        """, (resultSet, rowNum) -> new ActiveHold(
+                        resultSet.getObject("id", UUID.class),
+                        resultSet.getObject("seat_id", UUID.class),
+                        resultSet.getObject("user_id", UUID.class)
+                ), holdId)
+                .stream()
+                .findFirst();
+    }
+
+    boolean releaseIfActiveAndOwned(UUID holdId, UUID userId) {
+        return jdbcTemplate.update("""
+                UPDATE holds
+                SET status = 'RELEASED', released_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                  AND user_id = ?
+                  AND status = 'ACTIVE'
+                  AND expires_at > CURRENT_TIMESTAMP
+                """, holdId, userId) == 1;
+    }
+
+    List<UUID> findDueActiveHoldIds(int batchSize) {
+        return jdbcTemplate.queryForList("""
+                SELECT id
+                FROM holds
+                WHERE status = 'ACTIVE'
+                  AND expires_at <= CURRENT_TIMESTAMP
+                ORDER BY expires_at ASC
+                LIMIT ?
+                FOR UPDATE SKIP LOCKED
+                """, UUID.class, batchSize);
+    }
+
+    boolean expireIfDue(UUID holdId) {
+        return jdbcTemplate.update("""
+                UPDATE holds
+                SET status = 'EXPIRED', updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                  AND status = 'ACTIVE'
+                  AND expires_at <= CURRENT_TIMESTAMP
+                """, holdId) == 1;
+    }
+
+    void releaseSeatForInactiveHold(UUID holdId, String holdStatus) {
+        jdbcTemplate.update("""
+                UPDATE seats
+                SET status = 'AVAILABLE', version = version + 1
+                WHERE status = 'HELD'
+                  AND id = (
+                      SELECT seat_id
+                      FROM holds
+                      WHERE id = ?
+                        AND status = ?
+                  )
+                """, holdId, holdStatus);
+    }
+
+    record ActiveHold(UUID id, UUID seatId, UUID userId) {
     }
 }
