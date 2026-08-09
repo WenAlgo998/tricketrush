@@ -14,17 +14,20 @@ public class HoldService {
     private final EventCatalogRepository eventCatalogRepository;
     private final HoldRepository holdRepository;
     private final HoldProperties holdProperties;
+    private final SeatStatusEventPublisher seatStatusEventPublisher;
     private final Clock clock;
 
     HoldService(
             EventCatalogRepository eventCatalogRepository,
             HoldRepository holdRepository,
             HoldProperties holdProperties,
+            SeatStatusEventPublisher seatStatusEventPublisher,
             Clock clock
     ) {
         this.eventCatalogRepository = eventCatalogRepository;
         this.holdRepository = holdRepository;
         this.holdProperties = holdProperties;
+        this.seatStatusEventPublisher = seatStatusEventPublisher;
         this.clock = clock;
     }
 
@@ -45,6 +48,7 @@ public class HoldService {
         );
         UUID holdId = UUID.randomUUID();
         holdRepository.createActiveHold(holdId, seatId, userId, expiresAt);
+        seatStatusEventPublisher.publish(eventId, seatId, SeatStatus.HELD, expectedVersion + 1);
         return new CreatedHold(holdId, expiresAt);
     }
 
@@ -58,7 +62,10 @@ public class HoldService {
             throw new HoldNotOwnedException();
         }
         if (holdRepository.releaseIfActiveAndOwned(holdId, userId)) {
-            holdRepository.releaseSeatForInactiveHold(holdId, "RELEASED");
+            holdRepository.releaseSeatForInactiveHold(holdId, "RELEASED")
+                    .ifPresent(seat -> seatStatusEventPublisher.publish(
+                            seat.eventId(), seat.seatId(), SeatStatus.AVAILABLE, seat.version()
+                    ));
         }
     }
 

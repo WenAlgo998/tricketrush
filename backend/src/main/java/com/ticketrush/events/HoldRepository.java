@@ -96,8 +96,8 @@ class HoldRepository {
                 """, holdId) == 1;
     }
 
-    void releaseSeatForInactiveHold(UUID holdId, String holdStatus) {
-        jdbcTemplate.update("""
+    Optional<ReleasedSeat> releaseSeatForInactiveHold(UUID holdId, String holdStatus) {
+        return jdbcTemplate.query("""
                 UPDATE seats
                 SET status = 'AVAILABLE', version = version + 1
                 WHERE status = 'HELD'
@@ -107,9 +107,17 @@ class HoldRepository {
                       WHERE id = ?
                         AND status = ?
                   )
-                """, holdId, holdStatus);
+                RETURNING event_id, id, version
+                """, (resultSet, rowNum) -> new ReleasedSeat(
+                resultSet.getObject("event_id", UUID.class),
+                resultSet.getObject("id", UUID.class),
+                resultSet.getInt("version")
+        ), holdId, holdStatus).stream().findFirst();
     }
 
     record ActiveHold(UUID id, UUID seatId, UUID userId) {
+    }
+
+    record ReleasedSeat(UUID eventId, UUID seatId, int version) {
     }
 }

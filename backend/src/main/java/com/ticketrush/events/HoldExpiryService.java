@@ -11,10 +11,16 @@ public class HoldExpiryService {
 
     private final HoldRepository holdRepository;
     private final HoldExpiryProperties properties;
+    private final SeatStatusEventPublisher seatStatusEventPublisher;
 
-    HoldExpiryService(HoldRepository holdRepository, HoldExpiryProperties properties) {
+    HoldExpiryService(
+            HoldRepository holdRepository,
+            HoldExpiryProperties properties,
+            SeatStatusEventPublisher seatStatusEventPublisher
+    ) {
         this.holdRepository = holdRepository;
         this.properties = properties;
+        this.seatStatusEventPublisher = seatStatusEventPublisher;
     }
 
     @Scheduled(
@@ -25,7 +31,10 @@ public class HoldExpiryService {
     public void expireDueHolds() {
         for (UUID holdId : holdRepository.findDueActiveHoldIds(properties.batchSize())) {
             if (holdRepository.expireIfDue(holdId)) {
-                holdRepository.releaseSeatForInactiveHold(holdId, "EXPIRED");
+                holdRepository.releaseSeatForInactiveHold(holdId, "EXPIRED")
+                        .ifPresent(seat -> seatStatusEventPublisher.publish(
+                                seat.eventId(), seat.seatId(), SeatStatus.AVAILABLE, seat.version()
+                        ));
             }
         }
     }
