@@ -41,4 +41,14 @@ class ReservationRepository {
                 VALUES (?, ?)
                 """, orderId, seatId);
     }
+
+    int findSeatVersion(UUID seatId) {
+        Integer version = jdbcTemplate.queryForObject(
+                "SELECT version FROM seats WHERE id = ?", Integer.class, seatId
+        );
+        if (version == null) {
+            throw new IllegalStateException("Reserved seat no longer exists");
+        }
+        return version;
+    }
 }

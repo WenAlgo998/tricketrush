@@ -11,15 +11,18 @@ public class ReservationService {
 
     private final EventCatalogRepository eventCatalogRepository;
     private final ReservationRepository reservationRepository;
+    private final SeatStatusEventPublisher seatStatusEventPublisher;
     private final Clock clock;
 
     ReservationService(
             EventCatalogRepository eventCatalogRepository,
             ReservationRepository reservationRepository,
+            SeatStatusEventPublisher seatStatusEventPublisher,
             Clock clock
     ) {
         this.eventCatalogRepository = eventCatalogRepository;
         this.reservationRepository = reservationRepository;
+        this.seatStatusEventPublisher = seatStatusEventPublisher;
         this.clock = clock;
     }
 
@@ -37,6 +40,9 @@ public class ReservationService {
 
         UUID orderId = UUID.randomUUID();
         reservationRepository.createConfirmedOrder(orderId, userId, eventId, seatId);
+        seatStatusEventPublisher.publish(
+                eventId, seatId, SeatStatus.SOLD, reservationRepository.findSeatVersion(seatId)
+        );
         return new ConfirmedReservation(orderId);
     }
 

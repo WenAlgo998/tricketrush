@@ -53,8 +53,9 @@
 
 ## WebSocket (Stage 3+)
 - `WS /ws/events/{eventId}/seats`
-- Server → client message: `{ seatId, status, timestamp }`
-- WebSocket connections authenticate and authorize subscriptions. Messages are best-effort notifications; clients refetch `GET /api/events/{eventId}/seats` after reconnecting or when an update sequence appears incomplete.
+- Uses STOMP. Clients send `Authorization: Bearer <JWT>` in the STOMP `CONNECT` headers, then subscribe to `/topic/events/{eventId}/seats`.
+- Server → client message: `{ seatId, status, version, timestamp }`
+- Connections and seat-topic subscriptions require a valid JWT. Messages are best-effort notifications; clients refetch `GET /api/events/{eventId}/seats` after reconnecting or when an update sequence appears incomplete.
 
 ## Error Conventions
 - 409 Conflict — concurrency/version mismatch
