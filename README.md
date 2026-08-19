@@ -33,7 +33,7 @@ Once those files exist, the local workflow will be:
 
 ```bash
 cp .env.example .env
-docker compose up -d postgres
+docker compose up -d postgres redis
 ```
 
 Verify that PostgreSQL is ready before starting the API:

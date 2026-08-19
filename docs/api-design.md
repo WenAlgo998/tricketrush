@@ -51,6 +51,13 @@
 - `POST /api/events/{eventId}/queue/join` → `{ position, estimatedWaitSeconds }` (position is an estimate)
 - `GET /api/events/{eventId}/queue/status` → `{ admitted: boolean, token? }`
 
+## Rate limiting
+
+- Authenticated mutating `/api/**` requests (excluding registration and login) are limited per buyer in Redis.
+- The default is 60 requests in a sliding 60-second window; configure `app.rate-limit.max-requests` and `app.rate-limit.window` per environment.
+- `429` → `{ error: "Rate limit exceeded", code: "RATE_LIMIT_EXCEEDED" }` with a `Retry-After` response header.
+- Redis rate limiting fails open if Redis is unavailable because it is a protective, non-authoritative layer; PostgreSQL reservation and hold constraints remain the correctness boundary.
+
 ## WebSocket (Stage 3+)
 - `WS /ws/events/{eventId}/seats`
 - Uses STOMP. Clients send `Authorization: Bearer <JWT>` in the STOMP `CONNECT` headers, then subscribe to `/topic/events/{eventId}/seats`.

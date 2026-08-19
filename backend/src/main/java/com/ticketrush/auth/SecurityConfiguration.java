@@ -6,6 +6,7 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.ticketrush.common.api.ApiError;
+import com.ticketrush.ratelimit.RateLimitFilter;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,6 +29,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -38,7 +40,11 @@ import java.time.Clock;
 public class SecurityConfiguration {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            ObjectMapper objectMapper,
+            RateLimitFilter rateLimitFilter
+    ) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -57,7 +63,8 @@ public class SecurityConfiguration {
                                 writeError(response, objectMapper, 401, "Authentication required", "UNAUTHORIZED"))
                         .accessDeniedHandler((request, response, exception) ->
                                 writeError(response, objectMapper, 403, "Access denied", "FORBIDDEN"))
-                );
+                )
+                .addFilterAfter(rateLimitFilter, BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 
