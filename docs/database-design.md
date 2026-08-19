@@ -125,7 +125,7 @@ The outbox publisher claims ready rows with `FOR UPDATE SKIP LOCKED`, increments
 ## Redis Keys
 | Key pattern | Purpose | TTL |
 |---|---|---|
-| `ratelimit:{userId}` | per-user request throttle | rolling window |
+| `ratelimit:{userId}` | per-user sliding-window request throttle | window duration |
 | `waitingroom:{eventId}:admitted` | counter of admitted users | sale duration |
 
 Redis is never the only record of a hold. A scheduled job expires durable hold rows and atomically returns their seats to `AVAILABLE`; Redis may cache the status but must be rebuilt from PostgreSQL after a restart.

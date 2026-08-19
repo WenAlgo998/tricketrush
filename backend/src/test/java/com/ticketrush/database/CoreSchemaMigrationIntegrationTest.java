@@ -14,7 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 @SpringBootTest(properties = {
         "spring.flyway.enabled=true",
-        "spring.autoconfigure.exclude="
+        "spring.autoconfigure.exclude=",
+        "app.rate-limit.enabled=false",
+        "management.health.redis.enabled=false"
 })
 class CoreSchemaMigrationIntegrationTest {
 

@@ -23,7 +23,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers
 @SpringBootTest(properties = {
         "spring.flyway.enabled=true",
-        "spring.autoconfigure.exclude="
+        "spring.autoconfigure.exclude=",
+        "app.rate-limit.enabled=false",
+        "management.health.redis.enabled=false"
 })
 @AutoConfigureMockMvc
 class SeatMapIntegrationTest {

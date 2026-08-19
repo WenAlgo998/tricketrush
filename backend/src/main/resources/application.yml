@@ -13,6 +13,11 @@ spring:
       minimum-idle: 2
   flyway:
     locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 1s
 
 server:
   shutdown: graceful
@@ -41,3 +46,7 @@ app:
       sweep-interval: PT30S
       initial-delay: PT30S
       batch-size: 100
+  rate-limit:
+    enabled: true
+    window: PT1M
+    max-requests: 60
