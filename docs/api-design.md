@@ -48,8 +48,10 @@
 - `GET /api/orders/{orderId}` — poll or receive via WebSocket
 
 ## Waiting Room (Stage 4)
-- `POST /api/events/{eventId}/queue/join` → `{ position, estimatedWaitSeconds }` (position is an estimate)
-- `GET /api/events/{eventId}/queue/status` → `{ admitted: boolean, token? }`
+- Both endpoints require a bearer token and are scoped to the authenticated buyer; an event must exist, but it may be queued before ticket sales open.
+- `POST /api/events/{eventId}/queue/join` → `{ position, estimatedWaitSeconds }`. Joining is idempotent while the buyer remains queued: repeat calls return the original FIFO position. Position and wait time are estimates.
+- `GET /api/events/{eventId}/queue/status` → `{ admitted: boolean, token? }`. Polling atomically admits the queue head when capacity is available and returns a short-lived opaque admission token. A buyer that has not joined receives `{ admitted: false, token: null }`.
+- Redis is the only waiting-room state store. If it is unavailable, the API returns `503 WAITING_ROOM_UNAVAILABLE`; it never fabricates queue or admission state.
 
 ## Rate limiting
 
