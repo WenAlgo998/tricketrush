@@ -8,6 +8,7 @@ import com.ticketrush.events.SeatMapItem;
 import com.ticketrush.events.SeatMapService;
 import com.ticketrush.events.ReservationService;
 import com.ticketrush.events.HoldService;
+import com.ticketrush.waitingroom.WaitingRoomService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -37,17 +38,20 @@ public class EventController {
     private final SeatMapService seatMapService;
     private final ReservationService reservationService;
     private final HoldService holdService;
+    private final WaitingRoomService waitingRoomService;
 
     public EventController(
             EventCatalogService eventCatalogService,
             SeatMapService seatMapService,
             ReservationService reservationService,
-            HoldService holdService
+            HoldService holdService,
+            WaitingRoomService waitingRoomService
     ) {
         this.eventCatalogService = eventCatalogService;
         this.seatMapService = seatMapService;
         this.reservationService = reservationService;
         this.holdService = holdService;
+        this.waitingRoomService = waitingRoomService;
     }
 
     @GetMapping
@@ -102,6 +106,24 @@ public class EventController {
         return new HoldResponse(hold.holdId(), hold.expiresAt());
     }
 
+    @PostMapping("/{eventId}/queue/join")
+    public QueueJoinResponse joinWaitingRoom(
+            @PathVariable UUID eventId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        WaitingRoomService.QueueEntry entry = waitingRoomService.join(eventId, UUID.fromString(jwt.getSubject()));
+        return new QueueJoinResponse(entry.position(), entry.estimatedWaitSeconds());
+    }
+
+    @GetMapping("/{eventId}/queue/status")
+    public QueueStatusResponse waitingRoomStatus(
+            @PathVariable UUID eventId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        WaitingRoomService.QueueStatus status = waitingRoomService.status(eventId, UUID.fromString(jwt.getSubject()));
+        return new QueueStatusResponse(status.admitted(), status.token());
+    }
+
     public record EventResponse(
             UUID id,
             String name,
@@ -153,5 +175,11 @@ public class EventController {
     }
 
     public record HoldResponse(UUID holdId, java.time.OffsetDateTime expiresAt) {
+    }
+
+    public record QueueJoinResponse(int position, long estimatedWaitSeconds) {
+    }
+
+    public record QueueStatusResponse(boolean admitted, String token) {
     }
 }

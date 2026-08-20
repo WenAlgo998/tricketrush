@@ -2,7 +2,7 @@
 
 A high-concurrency ticket reservation platform demonstrating queueing, seat-hold concurrency control, real-time updates, and reliable event-driven payment handling.
 
-**Status:** 🚧 Stages 1–3 backend foundation complete — catalog, authentication, atomic reservations, durable holds, live seat updates, and reservation-race load testing.
+**Status:** 🚧 Stage 4 in progress — Redis-backed rate limiting and the authenticated waiting-room API are complete; checkout and asynchronous payment processing remain.
 
 ## Docs
 
@@ -58,6 +58,12 @@ Flyway applies all committed database migrations automatically at application st
 Verify API health at `http://localhost:8080/actuator/health`. See the component READMEs for checks and troubleshooting.
 
 Stage 1 intentionally confirms a single available seat without payment. This isolates and validates the atomic reservation invariant before checkout and asynchronous payment processing are introduced in Stage 4.
+
+## Waiting Room
+
+Authenticated buyers join an event-scoped, Redis-backed FIFO queue through `POST /api/events/{eventId}/queue/join`, then poll `GET /api/events/{eventId}/queue/status` for a short-lived admission token. The waiting room is a protective admission layer only: it never establishes ticket ownership, which remains PostgreSQL’s responsibility.
+
+Default admission settings are configured under `app.waiting-room` in [`backend/src/main/resources/application.yml`](backend/src/main/resources/application.yml): 100 active admissions, 10-minute token TTL, and 30-second estimated admission intervals.
 
 ## Load Test Results
 

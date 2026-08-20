@@ -14,6 +14,7 @@ Spring Boot API
 ## System Boundaries
 - PostgreSQL is the authoritative record for seats, holds, orders, and payments.
 - Redis and WebSockets are disposable performance and delivery layers. Clients treat WebSocket updates as best-effort notifications and reconcile by refetching the REST seat map after reconnecting.
+- The waiting room uses a Redis sorted set for FIFO queue order and a separate expiry-scored set for active admissions. Admission tokens are opaque, buyer- and event-scoped Redis values with a short TTL; PostgreSQL ticket ownership remains unchanged by queue admission.
 - Kafka carries durable asynchronous domain events. A transactional outbox prevents a database-to-broker dual-write failure.
 - The initial deployment is deliberately single-region with one PostgreSQL primary. Multi-region writes, cross-region failover, and globally fair queues are explicit non-goals.
 

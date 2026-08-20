@@ -7,6 +7,7 @@ import com.ticketrush.events.EventNotOnSaleException;
 import com.ticketrush.events.SeatUnavailableException;
 import com.ticketrush.events.SeatHoldConflictException;
 import com.ticketrush.events.HoldNotOwnedException;
+import com.ticketrush.waitingroom.WaitingRoomUnavailableException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -57,6 +58,12 @@ class ApiExceptionHandler {
     ResponseEntity<ApiError> handleHoldNotOwned() {
         return ResponseEntity.status(403)
                 .body(new ApiError("Hold is not owned by the authenticated buyer", "HOLD_NOT_OWNED"));
+    }
+
+    @ExceptionHandler(WaitingRoomUnavailableException.class)
+    ResponseEntity<ApiError> handleWaitingRoomUnavailable() {
+        return ResponseEntity.status(503)
+                .body(new ApiError("Waiting room is temporarily unavailable", "WAITING_ROOM_UNAVAILABLE"));
     }
 
     @ExceptionHandler({
