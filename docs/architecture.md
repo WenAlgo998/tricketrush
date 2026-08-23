@@ -39,6 +39,6 @@ Spring Boot API
 
 ## Reliability and Delivery Rules
 - WebSocket notifications do not carry authoritative state. Clients reconnect and refetch seats; the API returns `expiresAt` so a hold countdown can be reconstructed after disconnect.
-- Checkout retries provide an `Idempotency-Key` HTTP header. Keys are unique per authenticated user, and a retry with the same key returns the original order outcome.
+- Checkout retries provide an `Idempotency-Key` HTTP header. Keys are unique per authenticated user, and a retry with the same key returns the original order outcome. In one PostgreSQL transaction, checkout claims the key with a `PENDING` order, consumes only the buyer's active unexpired holds, and writes the corresponding `order_seats` rows.
 - Checkout creates a pending order and `PaymentRequested` outbox event in one transaction. An idempotent payment worker consumes the Kafka event, calls the mocked payment provider, and writes the final order and payment result.
 - The outbox publisher claims rows safely, retries transient failures, and sends exhausted failures to a DLQ. Consumers are idempotent because at-least-once delivery is expected.
