@@ -2,7 +2,7 @@
 
 A high-concurrency ticket reservation platform demonstrating queueing, seat-hold concurrency control, real-time updates, and reliable event-driven payment handling.
 
-**Status:** 🚧 Stage 4 in progress — Redis-backed rate limiting and the authenticated waiting-room API are complete; checkout and asynchronous payment processing remain.
+**Status:** 🚧 Stage 4 in progress — Redis-backed rate limiting, waiting-room admission, and idempotent checkout are complete; asynchronous payment processing remains.
 
 ## Docs
 
@@ -64,6 +64,10 @@ Stage 1 intentionally confirms a single available seat without payment. This iso
 Authenticated buyers join an event-scoped, Redis-backed FIFO queue through `POST /api/events/{eventId}/queue/join`, then poll `GET /api/events/{eventId}/queue/status` for a short-lived admission token. The waiting room is a protective admission layer only: it never establishes ticket ownership, which remains PostgreSQL’s responsibility.
 
 Default admission settings are configured under `app.waiting-room` in [`backend/src/main/resources/application.yml`](backend/src/main/resources/application.yml): 100 active admissions, 10-minute token TTL, and 30-second estimated admission intervals.
+
+## Checkout
+
+Authenticated buyers create a pending order with `POST /api/orders`, providing an `Idempotency-Key` UUID and their active hold IDs. PostgreSQL atomically consumes the buyer's valid holds and records the order; later PRs will publish payment work through the transactional outbox.
 
 ## Load Test Results
 

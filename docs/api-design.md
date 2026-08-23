@@ -45,6 +45,9 @@
   - requires `Idempotency-Key: <UUID>` request header; uniqueness is scoped to the authenticated user.
   - body: `{ holdIds: [...] }`
   - 202 → `{ orderId, status: "PENDING" }`
+  - the same buyer/key always returns the original order outcome; retrying does not consume holds twice.
+  - all holds must be distinct, active, unexpired, owned by the authenticated buyer, and belong to one event.
+  - `409 CHECKOUT_HOLD_CONFLICT` → a hold is missing, inactive, expired, belongs to another buyer, or spans multiple events.
 - `GET /api/orders/{orderId}` — poll or receive via WebSocket
 
 ## Waiting Room (Stage 4)

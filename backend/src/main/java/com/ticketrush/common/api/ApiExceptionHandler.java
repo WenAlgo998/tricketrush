@@ -7,6 +7,7 @@ import com.ticketrush.events.EventNotOnSaleException;
 import com.ticketrush.events.SeatUnavailableException;
 import com.ticketrush.events.SeatHoldConflictException;
 import com.ticketrush.events.HoldNotOwnedException;
+import com.ticketrush.events.CheckoutHoldConflictException;
 import com.ticketrush.waitingroom.WaitingRoomUnavailableException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 @RestControllerAdvice
 class ApiExceptionHandler {
@@ -60,6 +63,12 @@ class ApiExceptionHandler {
                 .body(new ApiError("Hold is not owned by the authenticated buyer", "HOLD_NOT_OWNED"));
     }
 
+    @ExceptionHandler(CheckoutHoldConflictException.class)
+    ResponseEntity<ApiError> handleCheckoutHoldConflict() {
+        return ResponseEntity.status(409)
+                .body(new ApiError("One or more holds are not active and owned by the authenticated buyer", "CHECKOUT_HOLD_CONFLICT"));
+    }
+
     @ExceptionHandler(WaitingRoomUnavailableException.class)
     ResponseEntity<ApiError> handleWaitingRoomUnavailable() {
         return ResponseEntity.status(503)
@@ -69,7 +78,10 @@ class ApiExceptionHandler {
     @ExceptionHandler({
             ConstraintViolationException.class,
             MethodArgumentTypeMismatchException.class,
-            MethodArgumentNotValidException.class
+            MethodArgumentNotValidException.class,
+            MissingRequestHeaderException.class,
+            HttpMessageNotReadableException.class,
+            IllegalArgumentException.class
     })
     ResponseEntity<ApiError> handleInvalidRequest() {
         return ResponseEntity.badRequest()
