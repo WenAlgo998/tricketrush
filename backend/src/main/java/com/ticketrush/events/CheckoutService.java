@@ -12,9 +12,11 @@ import java.util.UUID;
 public class CheckoutService {
 
     private final CheckoutRepository checkoutRepository;
+    private final OutboxEventRepository outboxEventRepository;
 
-    CheckoutService(CheckoutRepository checkoutRepository) {
+    CheckoutService(CheckoutRepository checkoutRepository, OutboxEventRepository outboxEventRepository) {
         this.checkoutRepository = checkoutRepository;
+        this.outboxEventRepository = outboxEventRepository;
     }
 
     @Transactional
@@ -51,6 +53,7 @@ public class CheckoutService {
                     .orElseThrow(CheckoutHoldConflictException::new);
             checkoutRepository.createOrderSeat(orderId, hold.seatId());
         }
+        outboxEventRepository.enqueuePaymentRequested(orderId, userId, eventId);
         return new PendingOrder(orderId, "PENDING");
     }
 

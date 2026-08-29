@@ -67,7 +67,7 @@ Default admission settings are configured under `app.waiting-room` in [`backend/
 
 ## Checkout
 
-Authenticated buyers create a pending order with `POST /api/orders`, providing an `Idempotency-Key` UUID and their active hold IDs. PostgreSQL atomically consumes the buyer's valid holds and records the order; later PRs will publish payment work through the transactional outbox.
+Authenticated buyers create a pending order with `POST /api/orders`, providing an `Idempotency-Key` UUID and their active hold IDs. PostgreSQL atomically consumes the buyer's valid holds, records the order, and enqueues a durable `PaymentRequested` outbox event. The next PR will publish that event to Kafka and process the mocked payment asynchronously.
 
 ## Load Test Results
 
