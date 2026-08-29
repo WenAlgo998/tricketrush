@@ -54,6 +54,7 @@ class CheckoutIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        jdbcTemplate.update("DELETE FROM outbox_events");
         jdbcTemplate.update("DELETE FROM order_seats");
         jdbcTemplate.update("DELETE FROM payments");
         jdbcTemplate.update("DELETE FROM holds");
@@ -98,6 +99,29 @@ class CheckoutIntegrationTest {
                 .isEqualTo(2);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM holds WHERE status = 'CONSUMED'", Integer.class))
                 .isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM outbox_events", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void atomicallyEnqueuesOnePaymentRequestedEventForANewOrder() throws Exception {
+        UUID holdId = createHold(firstSeatId, buyerToken, 0);
+        UUID idempotencyKey = UUID.randomUUID();
+
+        String response = checkout(buyerToken, idempotencyKey, holdId)
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        UUID orderId = UUID.fromString(objectMapper.readTree(response).get("orderId").asText());
+
+        checkout(buyerToken, idempotencyKey, holdId).andExpect(status().isAccepted());
+
+        JsonNode event = objectMapper.readTree(jdbcTemplate.queryForObject("""
+                SELECT payload::text
+                FROM outbox_events
+                WHERE aggregate_id = ? AND event_type = 'PaymentRequested'
+                """, String.class, orderId));
+        assertThat(event.get("orderId").asText()).isEqualTo(orderId.toString());
+        assertThat(event.get("eventId").asText()).isEqualTo(eventId.toString());
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM outbox_events", Integer.class)).isEqualTo(1);
     }
 
     @Test
@@ -114,6 +138,7 @@ class CheckoutIntegrationTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CHECKOUT_HOLD_CONFLICT"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM orders", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM outbox_events", Integer.class)).isZero();
     }
 
     @Test
