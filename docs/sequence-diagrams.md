@@ -1,6 +1,7 @@
 # Sequence Diagrams (text form — render with Mermaid)
 
 ## 1. Seat Hold (Stage 2)
+
 ```mermaid
 sequenceDiagram
     participant Buyer
@@ -23,6 +24,7 @@ sequenceDiagram
 ```
 
 ## 2. Checkout & Payment (Stage 4)
+
 ```mermaid
 sequenceDiagram
     participant Buyer
@@ -41,14 +43,16 @@ sequenceDiagram
     API-->>Buyer: Pending order response
     OUT->>DB: Claim unpublished outbox event
     OUT->>K: Publish payment requested event
+    OUT->>DB: Mark event published after broker acknowledgement
     K->>W: Deliver payment requested event
     W->>Payment: Charge order idempotently
     Payment-->>W: Payment result
-    W->>DB: Store payment result and final order state
+    W->>DB: Store payment result, final order state, and seat transitions
     Note over W,DB: Duplicate event delivery is ignored safely
 ```
 
 ## 3. Waiting Room Admission (Stage 4)
+
 ```mermaid
 sequenceDiagram
     participant Buyer
@@ -66,6 +70,7 @@ sequenceDiagram
 ```
 
 ## 4. Hold Expiry (Stage 2/4)
+
 ```mermaid
 sequenceDiagram
     participant W as Scheduled Expiry Job

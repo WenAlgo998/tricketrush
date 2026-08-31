@@ -18,6 +18,10 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       timeout: 1s
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:${KAFKA_PORT:9092}}
+    consumer:
+      auto-offset-reset: earliest
 
 server:
   shutdown: graceful
@@ -55,3 +59,12 @@ app:
     max-active-admissions: 100
     admission-token-ttl: PT10M
     estimated-admission-interval: PT30S
+  kafka:
+    enabled: true
+  outbox:
+    payment-topic: payment-events
+    publish-interval: PT1S
+    initial-delay: PT5S
+    batch-size: 100
+  payments:
+    consumer-group: payment-worker

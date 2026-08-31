@@ -66,7 +66,7 @@ CREATE TABLE order_seats (
 
 CREATE TABLE payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id UUID NOT NULL REFERENCES orders(id),
+  order_id UUID NOT NULL UNIQUE REFERENCES orders(id),
   status TEXT NOT NULL CHECK (status IN ('SUCCESS', 'FAILED')),
   provider_ref TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -120,7 +120,7 @@ Checkout and expiry must also use conditional transitions tied to the specific a
 
 `order_seats` must contain only seats from the order's `event_id`. The service validates that invariant while creating the order; a later schema refinement may enforce it with composite foreign keys.
 
-The outbox publisher claims ready rows with `FOR UPDATE SKIP LOCKED`, increments `attempt_count` on failure, and uses `next_attempt_at` for retry backoff. Kafka consumers must be idempotent because delivery is at least once.
+The outbox publisher claims ready rows with `FOR UPDATE SKIP LOCKED` and marks a row published only after Kafka acknowledges delivery. Kafka consumers must be idempotent because delivery is at least once; the unique payment-per-order constraint and conditional `PENDING` order transition provide the database backstop. Retry metadata, backoff, and DLQ handling are introduced separately.
 
 ## Redis Keys
 | Key pattern | Purpose | TTL |
