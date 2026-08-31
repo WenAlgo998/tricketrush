@@ -45,6 +45,12 @@ class CoreSchemaMigrationIntegrationTest {
                 WHERE version = '1'
                 """, Boolean.class);
 
+        Boolean paymentMigrationSucceeded = jdbcTemplate.queryForObject("""
+                SELECT success
+                FROM flyway_schema_history
+                WHERE version = '2'
+                """, Boolean.class);
+
         Integer activeHoldIndexCount = jdbcTemplate.queryForObject("""
                 SELECT count(*)
                 FROM pg_indexes
@@ -52,8 +58,17 @@ class CoreSchemaMigrationIntegrationTest {
                   AND indexname = 'uq_holds_active_seat'
                 """, Integer.class);
 
+        Integer paymentOrderConstraintCount = jdbcTemplate.queryForObject("""
+                SELECT count(*)
+                FROM pg_constraint
+                WHERE conrelid = 'payments'::regclass
+                  AND conname = 'uq_payments_order_id'
+                """, Integer.class);
+
         assertThat(coreTableCount).isEqualTo(8);
         assertThat(migrationSucceeded).isTrue();
+        assertThat(paymentMigrationSucceeded).isTrue();
         assertThat(activeHoldIndexCount).isEqualTo(1);
+        assertThat(paymentOrderConstraintCount).isEqualTo(1);
     }
 }

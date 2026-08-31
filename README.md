@@ -2,7 +2,7 @@
 
 A high-concurrency ticket reservation platform demonstrating queueing, seat-hold concurrency control, real-time updates, and reliable event-driven payment handling.
 
-**Status:** 🚧 Stage 4 in progress — Redis-backed rate limiting, waiting-room admission, and idempotent checkout are complete; asynchronous payment processing remains.
+**Status:** 🚧 Stage 4 in progress — Redis-backed admission controls and the Kafka-backed mocked-payment workflow are complete; retry, DLQ, and audit-log work remains.
 
 ## Docs
 
@@ -27,13 +27,13 @@ See `docs/architecture.md` for exit criteria per stage.
 
 ## Local Setup
 
-The application services and local infrastructure files will be added during implementation. The intended prerequisites are Java 21, Apache Maven 3.9+, Node.js 22+, and Docker Desktop.
+The local prerequisites are Java 21, Apache Maven 3.9+, Node.js 22+, and Docker Desktop.
 
-Once those files exist, the local workflow will be:
+Start the local dependencies with:
 
 ```bash
 cp .env.example .env
-docker compose up -d postgres redis
+docker compose up -d
 ```
 
 Verify that PostgreSQL is ready before starting the API:
@@ -67,7 +67,7 @@ Default admission settings are configured under `app.waiting-room` in [`backend/
 
 ## Checkout
 
-Authenticated buyers create a pending order with `POST /api/orders`, providing an `Idempotency-Key` UUID and their active hold IDs. PostgreSQL atomically consumes the buyer's valid holds, records the order, and enqueues a durable `PaymentRequested` outbox event. The next PR will publish that event to Kafka and process the mocked payment asynchronously.
+Authenticated buyers create a pending order with `POST /api/orders`, providing an `Idempotency-Key` UUID and their active hold IDs. PostgreSQL atomically consumes the buyer's valid holds, records the order, and enqueues a durable `PaymentRequested` outbox event. A scheduled publisher delivers the event to Kafka, where an idempotent mocked-payment worker confirms the order and sells its seats, or records a failed payment and releases those seats.
 
 ## Load Test Results
 
