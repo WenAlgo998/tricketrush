@@ -63,8 +63,14 @@ app:
     enabled: true
   outbox:
     payment-topic: payment-events
+    payment-dlq-topic: payment-events-dlq
     publish-interval: PT1S
     initial-delay: PT5S
     batch-size: 100
+    max-attempts: 3
+    retry-initial-delay: PT1S
+    retry-max-delay: PT1M
   payments:
     consumer-group: payment-worker
+    max-attempts: 3
+    retry-interval: PT1S

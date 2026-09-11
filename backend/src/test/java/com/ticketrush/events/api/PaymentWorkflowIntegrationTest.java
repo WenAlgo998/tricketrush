@@ -5,6 +5,10 @@ import com.ticketrush.events.OutboxPublisher;
 import com.ticketrush.events.PaymentProvider;
 import com.ticketrush.events.PaymentResult;
 import com.ticketrush.events.PaymentWorker;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +31,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -42,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.autoconfigure.exclude=",
         "app.kafka.enabled=true",
         "app.outbox.initial-delay=PT24H",
+        "app.payments.retry-interval=PT0.1S",
         "app.rate-limit.enabled=false",
         "management.health.redis.enabled=false"
 })
@@ -86,6 +92,7 @@ class PaymentWorkflowIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        jdbcTemplate.update("DELETE FROM audit_log");
         jdbcTemplate.update("DELETE FROM outbox_events");
         jdbcTemplate.update("DELETE FROM order_seats");
         jdbcTemplate.update("DELETE FROM payments");
@@ -121,6 +128,8 @@ class PaymentWorkflowIntegrationTest {
             assertThat(seatStatus()).isEqualTo("SOLD");
             assertThat(paymentStatus(orderId)).isEqualTo("SUCCESS");
             assertThat(outboxPublished(orderId)).isTrue();
+            assertThat(auditActionCount(orderId, "PAYMENT_OUTBOX_PUBLISHED")).isEqualTo(1);
+            assertThat(auditActionCount(orderId, "PAYMENT_SUCCEEDED")).isEqualTo(1);
         });
         verify(paymentProvider).charge(orderId);
 
@@ -149,8 +158,27 @@ class PaymentWorkflowIntegrationTest {
             assertThat(seatStatus()).isEqualTo("AVAILABLE");
             assertThat(paymentStatus(orderId)).isEqualTo("FAILED");
             assertThat(outboxPublished(orderId)).isTrue();
+            assertThat(auditActionCount(orderId, "PAYMENT_FAILED")).isEqualTo(1);
         });
         verify(paymentProvider).charge(orderId);
+    }
+
+    @Test
+    void deadLettersAnUnprocessablePaymentEventAfterBoundedConsumerRetries() throws Exception {
+        UUID orderId = createPendingOrder();
+        when(paymentProvider.charge(orderId)).thenThrow(new IllegalStateException("mock provider unavailable"));
+
+        outboxPublisher.publishReadyEvents();
+
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            assertThat(auditActionCount(orderId, "PAYMENT_EVENT_DEAD_LETTERED")).isEqualTo(1);
+            assertThat(orderStatus(orderId)).isEqualTo("PENDING");
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM payments WHERE order_id = ?", Integer.class, orderId
+            )).isZero();
+        });
+        verify(paymentProvider, times(3)).charge(orderId);
+        assertThat(readPaymentDlqRecord(orderId).value()).contains(orderId.toString());
     }
 
     private UUID createPendingOrder() throws Exception {
@@ -202,5 +230,36 @@ class PaymentWorkflowIntegrationTest {
         return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
                 "SELECT published FROM outbox_events WHERE aggregate_id = ?", Boolean.class, orderId
         ));
+    }
+
+    private int auditActionCount(UUID aggregateId, String action) {
+        return jdbcTemplate.queryForObject("""
+                SELECT count(*)
+                FROM audit_log
+                WHERE aggregate_id = ? AND action = ?
+                """, Integer.class, aggregateId, action);
+    }
+
+    private ConsumerRecord<String, String> readPaymentDlqRecord(UUID orderId) {
+        Map<String, Object> properties = Map.of(
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
+                ConsumerConfig.GROUP_ID_CONFIG, "payment-dlq-test-" + UUID.randomUUID(),
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class
+        );
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties)) {
+            consumer.subscribe(java.util.List.of("payment-events-dlq"));
+            long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+            while (System.nanoTime() < deadline) {
+                for (ConsumerRecord<String, String> record : consumer.poll(Duration.ofMillis(250))
+                        .records("payment-events-dlq")) {
+                    if (orderId.toString().equals(record.key())) {
+                        return record;
+                    }
+                }
+            }
+            throw new AssertionError("Expected payment DLQ record was not found");
+        }
     }
 }

@@ -43,11 +43,19 @@ sequenceDiagram
     API-->>Buyer: Pending order response
     OUT->>DB: Claim unpublished outbox event
     OUT->>K: Publish payment requested event
-    OUT->>DB: Mark event published after broker acknowledgement
+    alt Broker acknowledges publication
+        OUT->>DB: Mark event published
+    else Publication fails before max attempts
+        OUT->>DB: Increment attempt count and schedule exponential retry
+    else Publication exhausts attempts
+        OUT->>K: Send recovery envelope to payment-events-dlq
+        OUT->>DB: Mark event dead-lettered and append audit record
+    end
     K->>W: Deliver payment requested event
-    W->>Payment: Charge order idempotently
+    W->>Payment: Charge order idempotently (bounded retries)
     Payment-->>W: Payment result
-    W->>DB: Store payment result, final order state, and seat transitions
+    W->>DB: Store payment result, final order state, seat transitions, and audit record
+    Note over W,K: Exhausted worker failures route to payment-events-dlq
     Note over W,DB: Duplicate event delivery is ignored safely
 ```
 

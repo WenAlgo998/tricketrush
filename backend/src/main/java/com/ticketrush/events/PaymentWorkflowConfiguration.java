@@ -9,12 +9,20 @@ import org.springframework.kafka.config.TopicBuilder;
 
 @Configuration
 @ConditionalOnProperty(name = "app.kafka.enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties(OutboxProperties.class)
+@EnableConfigurationProperties({OutboxProperties.class, PaymentProperties.class})
 class PaymentWorkflowConfiguration {
 
     @Bean
     NewTopic paymentEventsTopic(OutboxProperties properties) {
         return TopicBuilder.name(properties.paymentTopic())
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    NewTopic paymentEventsDlqTopic(OutboxProperties properties) {
+        return TopicBuilder.name(properties.paymentDlqTopic())
                 .partitions(1)
                 .replicas(1)
                 .build();
