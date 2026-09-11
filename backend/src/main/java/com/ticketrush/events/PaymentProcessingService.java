@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 class PaymentProcessingService {
@@ -11,15 +12,18 @@ class PaymentProcessingService {
     private final PaymentRepository paymentRepository;
     private final PaymentProvider paymentProvider;
     private final SeatStatusEventPublisher seatStatusEventPublisher;
+    private final AuditLogService auditLogService;
 
     PaymentProcessingService(
             PaymentRepository paymentRepository,
             PaymentProvider paymentProvider,
-            SeatStatusEventPublisher seatStatusEventPublisher
+            SeatStatusEventPublisher seatStatusEventPublisher,
+            AuditLogService auditLogService
     ) {
         this.paymentRepository = paymentRepository;
         this.paymentProvider = paymentProvider;
         this.seatStatusEventPublisher = seatStatusEventPublisher;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -40,11 +44,17 @@ class PaymentProcessingService {
         if (paymentResult.succeeded()) {
             paymentRepository.markOrderConfirmed(order.orderId());
             publishSeatTransitions(paymentRepository.markOrderSeatsSold(order.orderId()), SeatStatus.SOLD);
+            auditLogService.record("ORDER", order.orderId(), "PAYMENT_SUCCEEDED", Map.of(
+                    "providerReference", paymentResult.providerReference()
+            ));
             return;
         }
 
         paymentRepository.markOrderFailed(order.orderId());
         publishSeatTransitions(paymentRepository.releaseOrderSeats(order.orderId()), SeatStatus.AVAILABLE);
+        auditLogService.record("ORDER", order.orderId(), "PAYMENT_FAILED", Map.of(
+                "providerReference", paymentResult.providerReference()
+        ));
     }
 
     private void publishSeatTransitions(List<PaymentRepository.SeatTransition> seats, SeatStatus status) {

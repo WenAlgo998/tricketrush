@@ -2,7 +2,7 @@
 
 A high-concurrency ticket reservation platform demonstrating queueing, seat-hold concurrency control, real-time updates, and reliable event-driven payment handling.
 
-**Status:** 🚧 Stage 4 in progress — Redis-backed admission controls and the Kafka-backed mocked-payment workflow are complete; retry, DLQ, and audit-log work remains.
+**Status:** 🚧 Stage 4 backend complete — TicketRush includes Redis-backed admission controls, a Kafka payment workflow, bounded recovery, dead-letter handling, and an audit trail. The React application is next.
 
 ## Docs
 
@@ -67,7 +67,7 @@ Default admission settings are configured under `app.waiting-room` in [`backend/
 
 ## Checkout
 
-Authenticated buyers create a pending order with `POST /api/orders`, providing an `Idempotency-Key` UUID and their active hold IDs. PostgreSQL atomically consumes the buyer's valid holds, records the order, and enqueues a durable `PaymentRequested` outbox event. A scheduled publisher delivers the event to Kafka, where an idempotent mocked-payment worker confirms the order and sells its seats, or records a failed payment and releases those seats.
+Authenticated buyers create a pending order with `POST /api/orders`, providing an `Idempotency-Key` UUID and their active hold IDs. PostgreSQL atomically consumes the buyer's valid holds, records the order, and enqueues a durable `PaymentRequested` outbox event. A scheduled publisher delivers the event to Kafka, where an idempotent mocked-payment worker confirms the order and sells its seats, or records a failed payment and releases those seats. Delivery failures use bounded exponential backoff, terminal failures are routed to `payment-events-dlq`, and each material outcome is recorded in PostgreSQL's audit log.
 
 ## Load Test Results
 

@@ -82,6 +82,17 @@ CREATE TABLE outbox_events (
   last_error TEXT,
   next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   published_at TIMESTAMPTZ,
+  dead_lettered BOOLEAN NOT NULL DEFAULT FALSE,
+  dead_lettered_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE audit_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  aggregate_type TEXT NOT NULL,
+  aggregate_id UUID NOT NULL,
+  action TEXT NOT NULL,
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
@@ -91,7 +102,8 @@ CREATE TABLE outbox_events (
 - `holds (expires_at)` — fast expiry sweep
 - `holds (seat_id, status)` — validates checkout and expiry efficiently
 - `orders (user_id, created_at)` — buyer order history
-- `outbox_events (published, next_attempt_at, created_at)` — fast publisher polling
+- `outbox_events (next_attempt_at, created_at) WHERE published = FALSE AND dead_lettered = FALSE` — fast retry polling
+- `audit_log (aggregate_type, aggregate_id, created_at DESC)` — ordered investigation trail per aggregate
 - Partial unique index — prevents more than one active hold for a seat:
 
 ```sql
@@ -120,7 +132,7 @@ Checkout and expiry must also use conditional transitions tied to the specific a
 
 `order_seats` must contain only seats from the order's `event_id`. The service validates that invariant while creating the order; a later schema refinement may enforce it with composite foreign keys.
 
-The outbox publisher claims ready rows with `FOR UPDATE SKIP LOCKED` and marks a row published only after Kafka acknowledges delivery. Kafka consumers must be idempotent because delivery is at least once; the unique payment-per-order constraint and conditional `PENDING` order transition provide the database backstop. Retry metadata, backoff, and DLQ handling are introduced separately.
+The outbox publisher claims ready rows with `FOR UPDATE SKIP LOCKED` and marks a row published only after Kafka acknowledges delivery. A failed delivery increments `attempt_count`, stores a bounded error message, and schedules the next attempt with exponential backoff. After the configured attempt limit, the original event is sent to the payment DLQ and the outbox row is marked `dead_lettered`; a failed DLQ delivery keeps the row retryable. Kafka consumers must be idempotent because delivery is at least once; the unique payment-per-order constraint and conditional `PENDING` order transition provide the database backstop. The append-only audit log records delivery recovery and payment outcomes.
 
 ## Redis Keys
 | Key pattern | Purpose | TTL |

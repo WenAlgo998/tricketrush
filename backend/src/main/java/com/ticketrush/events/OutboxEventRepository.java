@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 @Repository
 class OutboxEventRepository {
@@ -26,9 +27,10 @@ class OutboxEventRepository {
 
     List<OutboxEvent> lockReadyPaymentEvents(int batchSize) {
         return jdbcTemplate.query("""
-                        SELECT id, aggregate_id, payload::text
+                        SELECT id, aggregate_id, event_type, payload::text, attempt_count
                         FROM outbox_events
                         WHERE published = FALSE
+                          AND dead_lettered = FALSE
                           AND event_type = 'PaymentRequested'
                           AND next_attempt_at <= CURRENT_TIMESTAMP
                         ORDER BY created_at ASC, id ASC
@@ -37,7 +39,9 @@ class OutboxEventRepository {
                         """, (resultSet, rowNumber) -> new OutboxEvent(
                         resultSet.getObject("id", UUID.class),
                         resultSet.getObject("aggregate_id", UUID.class),
-                        resultSet.getString("payload")
+                        resultSet.getString("event_type"),
+                        resultSet.getString("payload"),
+                        resultSet.getInt("attempt_count")
                 ), batchSize);
     }
 
@@ -50,6 +54,31 @@ class OutboxEventRepository {
                 """, outboxEventId);
     }
 
-    record OutboxEvent(UUID id, UUID aggregateId, String payload) {
+    void scheduleRetry(UUID outboxEventId, String error, OffsetDateTime nextAttemptAt) {
+        jdbcTemplate.update("""
+                UPDATE outbox_events
+                SET attempt_count = attempt_count + 1,
+                    last_error = ?,
+                    next_attempt_at = ?
+                WHERE id = ?
+                  AND published = FALSE
+                  AND dead_lettered = FALSE
+                """, error, nextAttemptAt, outboxEventId);
+    }
+
+    void markDeadLettered(UUID outboxEventId, String error) {
+        jdbcTemplate.update("""
+                UPDATE outbox_events
+                SET attempt_count = attempt_count + 1,
+                    last_error = ?,
+                    dead_lettered = TRUE,
+                    dead_lettered_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                  AND published = FALSE
+                  AND dead_lettered = FALSE
+                """, error, outboxEventId);
+    }
+
+    record OutboxEvent(UUID id, UUID aggregateId, String eventType, String payload, int attemptCount) {
     }
 }

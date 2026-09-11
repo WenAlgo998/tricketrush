@@ -35,7 +35,7 @@ class CoreSchemaMigrationIntegrationTest {
                 WHERE table_schema = 'public'
                   AND table_name IN (
                       'users', 'events', 'seats', 'holds',
-                      'orders', 'order_seats', 'payments', 'outbox_events'
+                      'orders', 'order_seats', 'payments', 'outbox_events', 'audit_log'
                   )
                 """, Integer.class);
 
@@ -49,6 +49,12 @@ class CoreSchemaMigrationIntegrationTest {
                 SELECT success
                 FROM flyway_schema_history
                 WHERE version = '2'
+                """, Boolean.class);
+
+        Boolean reliabilityMigrationSucceeded = jdbcTemplate.queryForObject("""
+                SELECT success
+                FROM flyway_schema_history
+                WHERE version = '3'
                 """, Boolean.class);
 
         Integer activeHoldIndexCount = jdbcTemplate.queryForObject("""
@@ -65,10 +71,19 @@ class CoreSchemaMigrationIntegrationTest {
                   AND conname = 'uq_payments_order_id'
                 """, Integer.class);
 
-        assertThat(coreTableCount).isEqualTo(8);
+        Integer auditLogIndexCount = jdbcTemplate.queryForObject("""
+                SELECT count(*)
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND indexname = 'idx_audit_log_aggregate_created_at'
+                """, Integer.class);
+
+        assertThat(coreTableCount).isEqualTo(9);
         assertThat(migrationSucceeded).isTrue();
         assertThat(paymentMigrationSucceeded).isTrue();
+        assertThat(reliabilityMigrationSucceeded).isTrue();
         assertThat(activeHoldIndexCount).isEqualTo(1);
         assertThat(paymentOrderConstraintCount).isEqualTo(1);
+        assertThat(auditLogIndexCount).isEqualTo(1);
     }
 }
