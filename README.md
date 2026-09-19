@@ -2,7 +2,7 @@
 
 A high-concurrency ticket reservation platform demonstrating queueing, seat-hold concurrency control, real-time updates, and reliable event-driven payment handling.
 
-**Status:** 🚧 Stage 4 backend complete — TicketRush includes Redis-backed admission controls, a Kafka payment workflow, bounded recovery, dead-letter handling, and an audit trail. The React application is next.
+**Status:** 🚧 Stage 5 frontend in progress — TicketRush now includes a React authentication client alongside Redis-backed admission controls, a Kafka payment workflow, bounded recovery, dead-letter handling, and an audit trail.
 
 ## Docs
 
@@ -14,7 +14,7 @@ A high-concurrency ticket reservation platform demonstrating queueing, seat-hold
 
 ## Stack
 
-Spring Boot · React · PostgreSQL · Redis · Kafka · WebSockets
+Spring Boot · React · TypeScript · PostgreSQL · Redis · Kafka · WebSockets
 
 ## Build Stages
 
@@ -56,6 +56,16 @@ mvn spring-boot:run
 Flyway applies all committed database migrations automatically at application startup. Do not modify a migration after it has been applied; create a new versioned migration instead.
 
 Verify API health at `http://localhost:8080/actuator/health`. See the component READMEs for checks and troubleshooting.
+
+Start the React client in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. The Vite development server proxies `/api` requests to `http://localhost:8080`, so the browser uses the same API paths as the eventual production deployment. To point the client at a separately hosted API, copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_BASE_URL`.
 
 Stage 1 intentionally confirms a single available seat without payment. This isolates and validates the atomic reservation invariant before checkout and asynchronous payment processing are introduced in Stage 4.
 
