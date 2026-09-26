@@ -2,7 +2,7 @@
 
 A high-concurrency ticket reservation platform demonstrating queueing, seat-hold concurrency control, real-time updates, and reliable event-driven payment handling.
 
-**Status:** 🚧 Stage 5 frontend in progress — TicketRush now includes a React authentication client alongside Redis-backed admission controls, a Kafka payment workflow, bounded recovery, dead-letter handling, and an audit trail.
+**Status:** 🚧 Stage 5 frontend in progress — TicketRush now includes a React client for authentication, event discovery, and read-only seat-map availability alongside Redis-backed admission controls, a Kafka payment workflow, bounded recovery, dead-letter handling, and an audit trail.
 
 ## Docs
 
@@ -66,6 +66,8 @@ npm run dev
 ```
 
 Open `http://localhost:5173`. The Vite development server proxies `/api` requests to `http://localhost:8080`, so the browser uses the same API paths as the eventual production deployment. To point the client at a separately hosted API, copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_BASE_URL`.
+
+The public event catalog and event detail pages use `GET /api/events`, `GET /api/events/{eventId}`, and `GET /api/events/{eventId}/seats`. The seat map communicates live API availability but is intentionally read-only until the hold and checkout workflow is added.
 
 Stage 1 intentionally confirms a single available seat without payment. This isolates and validates the atomic reservation invariant before checkout and asynchronous payment processing are introduced in Stage 4.
 

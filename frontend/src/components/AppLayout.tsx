@@ -12,6 +12,7 @@ export function AppLayout() {
           <span>TicketRush</span>
         </Link>
         <nav className="site-nav" aria-label="Primary navigation">
+          <NavLink to="/events">Events</NavLink>
           {isAuthenticated ? (
             <>
               <NavLink to="/account">Account</NavLink>

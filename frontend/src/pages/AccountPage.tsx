@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 export function AccountPage() {
@@ -16,7 +17,7 @@ export function AccountPage() {
     <section className="content-page narrow" aria-labelledby="account-heading">
       <p className="eyebrow">Account</p>
       <h1 id="account-heading">You’re signed in.</h1>
-      <p className="page-intro">Your TicketRush session is ready for upcoming event discovery and seat selection.</p>
+      <p className="page-intro">Your TicketRush session is ready. Browse an event to see its current seat availability.</p>
       <dl className="account-summary">
         <div>
           <dt>Email</dt>
@@ -27,6 +28,7 @@ export function AccountPage() {
           <dd>{expiresAt}</dd>
         </div>
       </dl>
+      <Link className="button account-events-link" to="/events">Browse events</Link>
     </section>
   );
 }
