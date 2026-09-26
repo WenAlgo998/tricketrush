@@ -16,7 +16,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const isRegistration = mode === "register";
 
   if (isAuthenticated) {
-    return <Navigate to="/account" replace />;
+    return <Navigate to="/events" replace />;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -37,7 +37,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     try {
       const authenticate = isRegistration ? register : login;
       await authenticate({ email: normalizedEmail, password });
-      const destination = (location.state as { from?: string } | null)?.from ?? "/account";
+      const destination = (location.state as { from?: string } | null)?.from ?? "/events";
       navigate(destination, { replace: true });
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : "We could not sign you in. Please try again.");

@@ -12,10 +12,12 @@ export function LandingPage() {
         TicketRush is built for fair, reliable ticket access when demand is high.
       </p>
       <div className="hero-actions">
-        <Link className="button" to={isAuthenticated ? "/account" : "/register"}>
-          {isAuthenticated ? "View account" : "Create account"}
+        <Link className="button" to="/events">
+          Browse events
         </Link>
-        {!isAuthenticated && <Link className="text-link" to="/login">Already have an account? Sign in</Link>}
+        <Link className="text-link" to={isAuthenticated ? "/account" : "/login"}>
+          {isAuthenticated ? "View account" : "Already have an account? Sign in"}
+        </Link>
       </div>
       <div className="trust-grid" aria-label="TicketRush product principles">
         <article>
