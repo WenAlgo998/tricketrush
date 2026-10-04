@@ -69,6 +69,16 @@ public class HoldService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<ActiveHold> findActiveByEvent(UUID eventId, UUID userId) {
+        return holdRepository.findActiveUnexpiredByEventAndUser(eventId, userId).stream()
+                .map(hold -> new ActiveHold(hold.holdId(), hold.seatId(), hold.expiresAt()))
+                .toList();
+    }
+
     public record CreatedHold(UUID holdId, OffsetDateTime expiresAt) {
+    }
+
+    public record ActiveHold(UUID holdId, UUID seatId, OffsetDateTime expiresAt) {
     }
 }

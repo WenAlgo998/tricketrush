@@ -63,6 +63,23 @@ class HoldRepository {
                 .findFirst();
     }
 
+    List<ActiveHoldSummary> findActiveUnexpiredByEventAndUser(UUID eventId, UUID userId) {
+        return jdbcTemplate.query("""
+                        SELECT h.id, h.seat_id, h.expires_at
+                        FROM holds h
+                        JOIN seats s ON s.id = h.seat_id
+                        WHERE s.event_id = ?
+                          AND h.user_id = ?
+                          AND h.status = 'ACTIVE'
+                          AND h.expires_at > CURRENT_TIMESTAMP
+                        ORDER BY h.expires_at ASC, h.id ASC
+                        """, (resultSet, rowNum) -> new ActiveHoldSummary(
+                        resultSet.getObject("id", UUID.class),
+                        resultSet.getObject("seat_id", UUID.class),
+                        resultSet.getObject("expires_at", OffsetDateTime.class)
+                ), eventId, userId);
+    }
+
     boolean releaseIfActiveAndOwned(UUID holdId, UUID userId) {
         return jdbcTemplate.update("""
                 UPDATE holds
@@ -116,6 +133,9 @@ class HoldRepository {
     }
 
     record ActiveHold(UUID id, UUID seatId, UUID userId) {
+    }
+
+    record ActiveHoldSummary(UUID holdId, UUID seatId, OffsetDateTime expiresAt) {
     }
 
     record ReleasedSeat(UUID eventId, UUID seatId, int version) {

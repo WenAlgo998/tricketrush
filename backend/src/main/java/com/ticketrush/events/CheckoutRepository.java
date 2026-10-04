@@ -30,6 +30,19 @@ class CheckoutRepository {
                 .findFirst();
     }
 
+    Optional<OrderSummary> findOrderByIdAndUserId(UUID orderId, UUID userId) {
+        return jdbcTemplate.query("""
+                        SELECT id, status
+                        FROM orders
+                        WHERE id = ? AND user_id = ?
+                        """, (resultSet, rowNumber) -> new OrderSummary(
+                        resultSet.getObject("id", UUID.class),
+                        resultSet.getString("status")
+                ), orderId, userId)
+                .stream()
+                .findFirst();
+    }
+
     List<HoldEvent> findHoldEvents(UUID userId, List<UUID> holdIds) {
         String placeholders = String.join(", ", java.util.Collections.nCopies(holdIds.size(), "?"));
         List<Object> parameters = new ArrayList<>(holdIds);

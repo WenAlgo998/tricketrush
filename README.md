@@ -2,7 +2,7 @@
 
 A high-concurrency ticket reservation platform demonstrating queueing, seat-hold concurrency control, real-time updates, and reliable event-driven payment handling.
 
-**Status:** 🚧 Stage 5 frontend in progress — TicketRush now includes a React client for authentication, event discovery, and read-only seat-map availability alongside Redis-backed admission controls, a Kafka payment workflow, bounded recovery, dead-letter handling, and an audit trail.
+**Status:** ✅ Stage 5 React client complete — TicketRush includes authenticated event discovery, durable seat holds, idempotent checkout, and live seat-status reconciliation alongside Redis-backed admission controls, a Kafka payment workflow, bounded recovery, dead-letter handling, and an audit trail.
 
 ## Docs
 
@@ -22,6 +22,7 @@ Spring Boot · React · TypeScript · PostgreSQL · Redis · Kafka · WebSockets
 2. Seat holds with durable expiry + optimistic locking
 3. Live seat updates (WebSocket) + load-test script
 4. Waiting room, rate limiting, Kafka payment events, retry/DLQ, audit log
+5. React authentication, event discovery, hold/checkout, and live seat updates
 
 See `docs/architecture.md` for exit criteria per stage.
 
@@ -67,7 +68,7 @@ npm run dev
 
 Open `http://localhost:5173`. The Vite development server proxies `/api` requests to `http://localhost:8080`, so the browser uses the same API paths as the eventual production deployment. To point the client at a separately hosted API, copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_BASE_URL`.
 
-The public event catalog and event detail pages use `GET /api/events`, `GET /api/events/{eventId}`, and `GET /api/events/{eventId}/seats`. The seat map communicates live API availability but is intentionally read-only until the hold and checkout workflow is added.
+The public event catalog and event detail pages use `GET /api/events`, `GET /api/events/{eventId}`, and `GET /api/events/{eventId}/seats`. Signed-in buyers can place and release durable holds, recover their active event holds after refresh, and receive live seat-status notifications through the authenticated STOMP WebSocket connection.
 
 Stage 1 intentionally confirms a single available seat without payment. This isolates and validates the atomic reservation invariant before checkout and asynchronous payment processing are introduced in Stage 4.
 
@@ -79,7 +80,7 @@ Default admission settings are configured under `app.waiting-room` in [`backend/
 
 ## Checkout
 
-Authenticated buyers create a pending order with `POST /api/orders`, providing an `Idempotency-Key` UUID and their active hold IDs. PostgreSQL atomically consumes the buyer's valid holds, records the order, and enqueues a durable `PaymentRequested` outbox event. A scheduled publisher delivers the event to Kafka, where an idempotent mocked-payment worker confirms the order and sells its seats, or records a failed payment and releases those seats. Delivery failures use bounded exponential backoff, terminal failures are routed to `payment-events-dlq`, and each material outcome is recorded in PostgreSQL's audit log.
+Authenticated buyers create a pending order with `POST /api/orders`, providing an `Idempotency-Key` UUID and their active hold IDs. The React client keeps the same key when retrying an unfinished submission and polls its buyer-scoped order status while the mocked payment runs. PostgreSQL atomically consumes the buyer's valid holds, records the order, and enqueues a durable `PaymentRequested` outbox event. A scheduled publisher delivers the event to Kafka, where an idempotent mocked-payment worker confirms the order and sells its seats, or records a failed payment and releases those seats. Delivery failures use bounded exponential backoff, terminal failures are routed to `payment-events-dlq`, and each material outcome is recorded in PostgreSQL's audit log.
 
 ## Load Test Results
 

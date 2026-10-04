@@ -57,6 +57,12 @@ public class CheckoutService {
         return new PendingOrder(orderId, "PENDING");
     }
 
+    @Transactional(readOnly = true)
+    public PendingOrder findOrder(UUID orderId, UUID userId) {
+        return PendingOrder.from(checkoutRepository.findOrderByIdAndUserId(orderId, userId)
+                .orElseThrow(OrderNotFoundException::new));
+    }
+
     public record PendingOrder(UUID orderId, String status) {
         private static PendingOrder from(CheckoutRepository.OrderSummary order) {
             return new PendingOrder(order.orderId(), order.status());

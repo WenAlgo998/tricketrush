@@ -8,6 +8,7 @@ import com.ticketrush.events.SeatUnavailableException;
 import com.ticketrush.events.SeatHoldConflictException;
 import com.ticketrush.events.HoldNotOwnedException;
 import com.ticketrush.events.CheckoutHoldConflictException;
+import com.ticketrush.events.OrderNotFoundException;
 import com.ticketrush.waitingroom.WaitingRoomUnavailableException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,12 @@ class ApiExceptionHandler {
     ResponseEntity<ApiError> handleEventNotFound() {
         return ResponseEntity.status(404)
                 .body(new ApiError("Event not found", "EVENT_NOT_FOUND"));
+    }
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    ResponseEntity<ApiError> handleOrderNotFound() {
+        return ResponseEntity.status(404)
+                .body(new ApiError("Order not found", "ORDER_NOT_FOUND"));
     }
 
     @ExceptionHandler(EmailAlreadyRegisteredException.class)

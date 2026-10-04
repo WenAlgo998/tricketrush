@@ -92,3 +92,28 @@ sequenceDiagram
     W->>WS: Broadcast seat available notification
     Note over WS: Reconnecting clients refetch the seat map
 ```
+
+## 5. React Hold, Checkout, and Live Reconciliation (Stage 5)
+
+```mermaid
+sequenceDiagram
+    participant Buyer
+    participant UI as React Client
+    participant API as Spring Boot API
+    participant WS as STOMP WebSocket
+
+    Buyer->>UI: Select available seat
+    UI->>API: Create hold with current seat version
+    API-->>UI: Hold ID and expiry time
+    UI->>API: Read active holds for buyer and event
+    API-->>UI: Durable active-hold summary
+    Buyer->>UI: Submit checkout
+    UI->>API: Checkout with stable idempotency key
+    API-->>UI: Pending order
+    loop Until terminal order status
+        UI->>API: Read buyer-scoped order status
+        API-->>UI: Pending, confirmed, or failed
+    end
+    WS-->>UI: Seat status update with version
+    Note over UI,API: On reconnect, UI refetches seat map and active holds
+```

@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -38,6 +40,12 @@ public class OrderController {
         CheckoutService.PendingOrder order = checkoutService.checkout(
                 UUID.fromString(jwt.getSubject()), idempotencyKey, request.holdIds()
         );
+        return new OrderResponse(order.orderId(), order.status());
+    }
+
+    @GetMapping("/{orderId}")
+    public OrderResponse getOrder(@PathVariable UUID orderId, @AuthenticationPrincipal Jwt jwt) {
+        CheckoutService.PendingOrder order = checkoutService.findOrder(orderId, UUID.fromString(jwt.getSubject()));
         return new OrderResponse(order.orderId(), order.status());
     }
 
