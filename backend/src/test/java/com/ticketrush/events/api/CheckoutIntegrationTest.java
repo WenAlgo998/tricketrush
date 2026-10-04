@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -155,6 +156,27 @@ class CheckoutIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"holdIds\":[\"%s\"]}".formatted(UUID.randomUUID())))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void returnsOrderStatusOnlyToTheOwningBuyer() throws Exception {
+        UUID holdId = createHold(firstSeatId, buyerToken, 0);
+        String response = checkout(buyerToken, UUID.randomUUID(), holdId)
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        UUID orderId = UUID.fromString(objectMapper.readTree(response).get("orderId").asText());
+
+        mockMvc.perform(get("/api/orders/{orderId}", orderId)
+                        .header("Authorization", "Bearer " + buyerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderId").value(orderId.toString()))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+
+        String otherBuyerToken = registerAndGetToken("other@example.com");
+        mockMvc.perform(get("/api/orders/{orderId}", orderId)
+                        .header("Authorization", "Bearer " + otherBuyerToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"));
     }
 
     private org.springframework.test.web.servlet.ResultActions checkout(

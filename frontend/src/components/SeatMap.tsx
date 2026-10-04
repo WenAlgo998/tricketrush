@@ -3,11 +3,14 @@ import { formatPrice, titleCase } from "../formatters";
 
 type SeatMapProps = {
   seats: Seat[];
+  heldSeatIds?: ReadonlySet<string>;
+  pendingSeatId?: string | null;
+  onSeatAction?: (seat: Seat) => void;
 };
 
 const statusOrder: SeatStatus[] = ["AVAILABLE", "HELD", "SOLD"];
 
-export function SeatMap({ seats }: SeatMapProps) {
+export function SeatMap({ seats, heldSeatIds = new Set(), pendingSeatId = null, onSeatAction }: SeatMapProps) {
   const sections = groupSeats(seats);
   const counts = countByStatus(seats);
 
@@ -27,7 +30,11 @@ export function SeatMap({ seats }: SeatMapProps) {
           ))}
         </ul>
       </div>
-      <p className="seat-map-note">Availability is read-only in this release. Seat holds and checkout are added next.</p>
+      <p className="seat-map-note">
+        {onSeatAction === undefined
+          ? "Availability is read-only until you sign in."
+          : "Select an available seat to place a five-minute hold. Your hold can be released at any time."}
+      </p>
       {seats.length === 0 ? (
         <div className="empty-state">This event does not have a published seat map yet.</div>
       ) : (
@@ -39,16 +46,13 @@ export function SeatMap({ seats }: SeatMapProps) {
                 <div className="seat-row" key={row}>
                   <span className="seat-row-label">Row {row}</span>
                   <ul className="seat-row-seats" aria-label={`Section ${section}, row ${row}`}>
-                    {rowSeats.map((seat) => (
-                      <li key={seat.id}>
-                        <span
-                          className={`seat seat--${seat.status.toLowerCase()}`}
-                          aria-label={`Section ${seat.section}, row ${seat.row}, seat ${seat.seatNumber}: ${titleCase(seat.status)}, ${formatPrice(seat.priceCents, seat.currency)}`}
-                        >
-                          {seat.seatNumber}
-                        </span>
-                      </li>
-                    ))}
+                    {rowSeats.map((seat) => <SeatCell
+                      key={seat.id}
+                      seat={seat}
+                      isHeldByBuyer={heldSeatIds.has(seat.id)}
+                      isPending={pendingSeatId === seat.id}
+                      onSeatAction={onSeatAction}
+                    />)}
                   </ul>
                 </div>
               ))}
@@ -57,6 +61,43 @@ export function SeatMap({ seats }: SeatMapProps) {
         </div>
       )}
     </section>
+  );
+}
+
+function SeatCell({
+  seat,
+  isHeldByBuyer,
+  isPending,
+  onSeatAction
+}: {
+  seat: Seat;
+  isHeldByBuyer: boolean;
+  isPending: boolean;
+  onSeatAction: ((seat: Seat) => void) | undefined;
+}) {
+  const canHold = seat.status === "AVAILABLE";
+  const canRelease = isHeldByBuyer && seat.status === "HELD";
+  const canAct = onSeatAction !== undefined && (canHold || canRelease);
+  const seatLabel = `Section ${seat.section}, row ${seat.row}, seat ${seat.seatNumber}: ${titleCase(seat.status)}, ${formatPrice(seat.priceCents, seat.currency)}`;
+
+  return (
+    <li>
+      {canAct ? (
+        <button
+          className={`seat seat--${seat.status.toLowerCase()}${isHeldByBuyer ? " seat--own-hold" : ""}`}
+          type="button"
+          disabled={isPending}
+          aria-label={`${canRelease ? "Release hold for" : "Hold"} ${seatLabel}`}
+          onClick={() => onSeatAction(seat)}
+        >
+          {isPending ? "…" : seat.seatNumber}
+        </button>
+      ) : (
+        <span className={`seat seat--${seat.status.toLowerCase()}`} aria-label={seatLabel}>
+          {seat.seatNumber}
+        </span>
+      )}
+    </li>
   );
 }
 

@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -167,12 +168,38 @@ class HoldIntegrationTest {
                 .andExpect(jsonPath("$.code").value("SEAT_HOLD_CONFLICT"));
     }
 
+    @Test
+    void listsOnlyTheAuthenticatedBuyersUnexpiredHoldsForAnEvent() throws Exception {
+        mockMvc.perform(post("/api/events/{eventId}/seats/{seatId}/hold", eventId, seatId)
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"expectedVersion\":0}"))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/holds").param("eventId", eventId.toString())
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].seatId").value(seatId.toString()))
+                .andExpect(jsonPath("$[0].holdId").isNotEmpty())
+                .andExpect(jsonPath("$[0].expiresAt").isNotEmpty());
+
+        String otherBuyerToken = registerAndGetToken("other@example.com");
+        mockMvc.perform(get("/api/holds").param("eventId", eventId.toString())
+                        .header("Authorization", "Bearer " + otherBuyerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
     private String registerAndGetToken() throws Exception {
+        return registerAndGetToken("buyer@example.com");
+    }
+
+    private String registerAndGetToken(String email) throws Exception {
         String response = mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"buyer@example.com","password":"correct-horse"}
-                                """))
+                                {"email":"%s","password":"correct-horse"}
+                                """.formatted(email)))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()

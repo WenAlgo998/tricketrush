@@ -39,6 +39,8 @@
   - `204` → released successfully or hold is already inactive.
   - `403 HOLD_NOT_OWNED` → the active hold belongs to another buyer.
   - Expired holds are released by the durable expiry sweep; the sweep transitions the hold to `EXPIRED` before releasing its seat.
+- `GET /api/holds?eventId={eventId}` — returns the authenticated buyer's active, unexpired holds for one event.
+  - `200` → `[{ holdId, seatId, expiresAt }]`
 
 ## Checkout (Stage 4)
 - `POST /api/orders`
@@ -48,7 +50,8 @@
   - the same buyer/key always returns the original order outcome; retrying does not consume holds twice.
   - all holds must be distinct, active, unexpired, owned by the authenticated buyer, and belong to one event.
   - `409 CHECKOUT_HOLD_CONFLICT` → a hold is missing, inactive, expired, belongs to another buyer, or spans multiple events.
-- `GET /api/orders/{orderId}` — poll or receive via WebSocket
+- `GET /api/orders/{orderId}` — returns `{ orderId, status }` for the authenticated buyer's order.
+  - `404 ORDER_NOT_FOUND` → the order does not exist or does not belong to the authenticated buyer.
 
 ## Waiting Room (Stage 4)
 - Both endpoints require a bearer token and are scoped to the authenticated buyer; an event must exist, but it may be queued before ticket sales open.

@@ -2,7 +2,7 @@
 
 ## System Diagram
 ```
-React (seat map, waiting room UI)
+React (auth, catalog, seat map, holds, checkout)
         │  HTTP + WebSocket
 Spring Boot API
    ├── PostgreSQL   — events, seats, holds, orders, payments (source of truth)
@@ -44,3 +44,5 @@ Spring Boot API
 - Publisher failures increment the durable attempt counter and use bounded exponential backoff. At the configured attempt limit, the publisher sends an envelope containing the original event and failure context to `payment-events-dlq`, then marks the original outbox row as dead-lettered. If the DLQ is unavailable, the row remains eligible for a later retry.
 - The payment worker locks a `PENDING` order by ID, invokes the mocked provider with that order ID as its idempotency key, and writes the payment result with the final order and seat transitions in one transaction. It ignores duplicate deliveries once the order is no longer pending. Consumer failures also use bounded retries before Kafka routes the original record to `payment-events-dlq`.
 - `audit_log` is append-only application evidence for publisher delivery, retry scheduling, dead-letter placement, and final payment outcomes. Delivery remains at least once, so every consumer remains idempotent.
+- The React client reads active holds from the authenticated API rather than treating browser state as authoritative. Hold creation uses the seat version returned by the current map, and the client discards expired local hold entries before checkout.
+- Authenticated STOMP subscriptions provide low-latency seat-status hints. The client applies only newer seat versions and refetches the REST seat map and active holds after each reconnect, preserving PostgreSQL and the API as the authority.

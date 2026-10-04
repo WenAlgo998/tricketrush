@@ -133,6 +133,34 @@ h1 { max-width: 760px; margin: 0; color: #fff; font-size: clamp(2.65rem, 7vw, 5.
 .seat-map { padding-top: 48px; border-top: 1px solid rgba(224, 216, 255, 0.15); }
 .seat-map h2 { margin: 0; color: #fff; font-size: clamp(1.85rem, 4vw, 3rem); letter-spacing: -0.05em; }
 .seat-map-note { margin: 18px 0 0; color: #bcb4d0; line-height: 1.5; }
+.booking-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 30px; align-items: start; }
+.booking-layout .seat-map { min-width: 0; }
+.sign-in-to-hold { display: flex; align-items: center; justify-content: space-between; gap: 26px; margin: 0 0 38px; padding: 25px; border: 1px solid rgba(193, 173, 255, 0.3); border-radius: 14px; background: rgba(73, 53, 122, 0.35); }
+.sign-in-to-hold h2 { margin: 0; color: #fff; font-size: 1.25rem; letter-spacing: -0.025em; }
+.sign-in-to-hold p:last-child { margin: 8px 0 0; color: #c7c0d8; line-height: 1.5; }
+.live-status { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 24px; color: #c6bfd5; font-size: 0.85rem; }
+.live-status span { display: block; width: 8px; height: 8px; border-radius: 50%; background: #e8be64; box-shadow: 0 0 0 4px rgba(232, 190, 100, 0.13); }
+.live-status--connected span { background: #85e5b4; box-shadow: 0 0 0 4px rgba(133, 229, 180, 0.13); }
+.live-status--reconnecting span { background: #f09bbe; box-shadow: 0 0 0 4px rgba(240, 155, 190, 0.13); }
+.hold-panel { position: sticky; top: 22px; padding: 24px; border: 1px solid rgba(224, 216, 255, 0.17); border-radius: 16px; background: rgba(40, 31, 66, 0.82); box-shadow: 0 16px 55px rgba(0, 0, 0, 0.15); }
+.hold-panel h2 { margin: 0; color: #fff; font-size: 1.4rem; letter-spacing: -0.035em; }
+.hold-panel-empty, .hold-panel-note { color: #c5bdd7; line-height: 1.5; }
+.hold-panel-empty { margin: 16px 0 0; }
+.hold-panel-note { margin: 12px 0 0; font-size: 0.81rem; }
+.held-seat-list { display: grid; gap: 14px; margin: 23px 0; padding: 0; list-style: none; }
+.held-seat-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.held-seat-list strong, .held-seat-list span { display: block; }
+.held-seat-list strong { color: #f8f6ff; font-size: 0.88rem; }
+.held-seat-list span { margin-top: 4px; color: #b7afca; font-size: 0.8rem; }
+.hold-release { color: #e6b5cb; font-size: 0.83rem; }
+.hold-total { display: flex; align-items: center; justify-content: space-between; padding: 17px 0; border-top: 1px solid rgba(224, 216, 255, 0.13); color: #c8c0d9; }
+.hold-total strong { color: #fff; font-size: 1.1rem; }
+.hold-checkout { width: 100%; }
+.hold-error { margin-top: 18px; }
+.order-status { margin: 22px 0 0; padding: 13px; border-radius: 9px; line-height: 1.5; font-size: 0.9rem; }
+.order-status--pending { background: rgba(157, 122, 47, 0.2); color: #ffe7a3; }
+.order-status--confirmed { background: rgba(54, 156, 104, 0.24); color: #b6f5d0; }
+.order-status--failed { background: rgba(152, 54, 85, 0.22); color: #ffc5d4; }
 .seat-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin: 8px 0 0; padding: 0; color: #c8c1d7; font-size: 0.85rem; list-style: none; }
 .seat-legend li { display: flex; align-items: center; gap: 6px; }
 .seat-legend strong { color: #fff; }
@@ -146,7 +174,12 @@ h1 { max-width: 760px; margin: 0; color: #fff; font-size: clamp(2.65rem, 7vw, 5.
 .seat-row { display: grid; grid-template-columns: 62px 1fr; gap: 14px; align-items: center; padding: 7px 0; }
 .seat-row-label { color: #aea5c3; font-size: 0.84rem; }
 .seat-row-seats { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.seat { display: inline-grid; width: 38px; height: 34px; place-items: center; border-radius: 7px 7px 4px 4px; font-size: 0.76rem; font-weight: 800; }
+.seat { display: inline-grid; width: 38px; height: 34px; place-items: center; border: 0; border-radius: 7px 7px 4px 4px; font-size: 0.76rem; font-weight: 800; }
+button.seat { cursor: pointer; transition: transform 140ms ease, filter 140ms ease; }
+button.seat:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+button.seat:focus-visible { outline: 3px solid #f3e9a3; outline-offset: 3px; }
+button.seat:disabled { cursor: wait; opacity: 0.65; }
+.seat--own-hold { box-shadow: inset 0 0 0 2px #fff; }
 
 @media (max-width: 640px) {
   .site-header, .site-footer, .hero, .content-page, .auth-page { width: min(100% - 32px, 1120px); }
@@ -162,4 +195,7 @@ h1 { max-width: 760px; margin: 0; color: #fff; font-size: clamp(2.65rem, 7vw, 5.
   .pagination .button { min-width: 0; padding: 0 13px; }
   .seat-section { padding: 17px; }
   .seat-row { grid-template-columns: 1fr; gap: 7px; padding: 12px 0; }
+  .booking-layout { grid-template-columns: 1fr; gap: 24px; }
+  .hold-panel { position: static; }
+  .sign-in-to-hold { align-items: flex-start; flex-direction: column; }
 }
