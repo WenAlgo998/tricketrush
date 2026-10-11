@@ -36,6 +36,7 @@ Spring Boot API
 | 2 | Seat holds with durable expiry + optimistic locking | Concurrent requests for the same seat → exactly 1 succeeds; expiry is tested and recoverable |
 | 3 | Live seat updates + load-test script | WebSocket reflects state across clients; load test shows 0 duplicate confirmations |
 | 4 | Waiting room, rate limiting, Kafka payment events, retry/DLQ, audit log | Full flow survives simulated spike; DLQ receives failed messages; audit log complete |
+| 5 | React authentication, event discovery, holds, checkout, and live updates | Buyers can complete the authenticated purchase flow; the client recovers authoritative REST state after mutations and WebSocket reconnects |
 
 ## Reliability and Delivery Rules
 - WebSocket notifications do not carry authoritative state. Clients reconnect and refetch seats; the API returns `expiresAt` so a hold countdown can be reconstructed after disconnect.

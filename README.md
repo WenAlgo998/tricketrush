@@ -2,6 +2,8 @@
 
 A high-concurrency ticket reservation platform demonstrating queueing, seat-hold concurrency control, real-time updates, and reliable event-driven payment handling.
 
+[![CI](https://github.com/WenAlgo998/tricketrush/actions/workflows/ci.yml/badge.svg)](https://github.com/WenAlgo998/tricketrush/actions/workflows/ci.yml)
+
 **Status:** ✅ Stage 5 React client complete — TicketRush includes authenticated event discovery, durable seat holds, idempotent checkout, and live seat-status reconciliation alongside Redis-backed admission controls, a Kafka payment workflow, bounded recovery, dead-letter handling, and an audit trail.
 
 ## Docs
@@ -25,6 +27,10 @@ Spring Boot · React · TypeScript · PostgreSQL · Redis · Kafka · WebSockets
 5. React authentication, event discovery, hold/checkout, and live seat updates
 
 See `docs/architecture.md` for exit criteria per stage.
+
+## Continuous Integration
+
+Every pull request and change to `main` runs the frontend test/build, the Spring Boot integration suite (including Testcontainers), Docker Compose configuration validation, and a Git whitespace check. See [CONTRIBUTING.md](CONTRIBUTING.md) for the local verification commands and contribution expectations.
 
 ## Local Setup
 
@@ -62,7 +68,7 @@ Start the React client in a second terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
